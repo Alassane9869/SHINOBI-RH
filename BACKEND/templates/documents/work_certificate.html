@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .company-info {
+            margin-bottom: 20px;
+        }
+        .employee-info {
+            margin-bottom: 20px;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .content {
+            margin: 30px 0;
+            text-align: justify;
+        }
+        .signature {
+            margin-top: 50px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 10pt;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ATTESTATION DE TRAVAIL</h1>
+    </div>
+
+    <div class="company-info">
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p>Email: {{ company.email }} | Tél: {{ company.phone }}</p>
+    </div>
+
+    <div class="content">
+        <p>Je soussigné(e), représentant légal de <strong>{{ company.name }}</strong>, atteste par la présente que :</p>
+        
+        <div class="employee-info">
+            <p><strong>Nom et Prénom :</strong> {{ employee.user.get_full_name }}</p>
+            <p><strong>Poste occupé :</strong> {{ employee.position }}</p>
+            <p><strong>Département :</strong> {{ employee.department }}</p>
+            <p><strong>Date d'embauche :</strong> {{ employee.date_hired|date:"d/m/Y" }}</p>
+        </div>
+
+        <p>
+            {{ employee.user.get_full_name }} est employé(e) au sein de notre entreprise depuis le 
+            {{ employee.date_hired|date:"d/m/Y" }} en qualité de {{ employee.position }}.
+        </p>
+
+        <p>
+            Cette attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.
+        </p>
+    </div>
+
+    <div class="signature">
+        <p>Fait à ________________, le {{ current_date|date:"d/m/Y" }}</p>
+        <br><br>
+        <p>Signature et cachet de l'entreprise</p>
+    </div>
+
+    <div class="footer">
+        <p>{{ company.name }} - {{ company.email }}</p>
+    </div>
+</body>
+</html>

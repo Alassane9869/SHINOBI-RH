@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: sans-serif; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .details { margin-bottom: 20px; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { border: 1px solid #ddd; padding: 8px; }
+        .total { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Bulletin de Paie</h1>
+        <h2>{{ company.name }}</h2>
+    </div>
+    <div class="details">
+        <p><strong>Employé:</strong> {{ employee.user.get_full_name }}</p>
+        <p><strong>Poste:</strong> {{ employee.position }}</p>
+        <p><strong>Période:</strong> {{ month }}/{{ year }}</p>
+    </div>
+    <table class="table">
+        <tr>
+            <th>Description</th>
+            <th>Montant</th>
+        </tr>
+        <tr>
+            <td>Salaire de base</td>
+            <td>{{ basic_salary }}</td>
+        </tr>
+        <tr>
+            <td>Bonus</td>
+            <td>{{ bonus }}</td>
+        </tr>
+        <tr>
+            <td>Déductions</td>
+            <td>-{{ deductions }}</td>
+        </tr>
+        <tr class="total">
+            <td>Net à payer</td>
+            <td>{{ net_salary }}</td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .contract-title {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            text-decoration: underline;
+        }
+        .section {
+            margin: 20px 0;
+        }
+        .section-title {
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .article {
+            margin: 15px 0;
+        }
+        .signature-block {
+            margin-top: 50px;
+            display: table;
+            width: 100%;
+        }
+        .signature-left, .signature-right {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>{{ company.name }}</h2>
+        <p>{{ company.address }}</p>
+    </div>
+
+    <div class="contract-title">
+        CONTRAT DE TRAVAIL
+    </div>
+
+    <div class="section">
+        <div class="section-title">ENTRE LES SOUSSIGNÉS :</div>
+        <p>
+            <strong>{{ company.name }}</strong>, société dont le siège social est situé à {{ company.address }},
+            représentée par son dirigeant en exercice,
+        </p>
+        <p style="text-align: center;"><strong>Ci-après dénommée "l'Employeur"</strong></p>
+        <p style="text-align: center;">D'UNE PART,</p>
+    </div>
+
+    <div class="section">
+        <p style="text-align: center;"><strong>ET :</strong></p>
+        <p>
+            <strong>{{ employee.user.get_full_name }}</strong><br>
+            Demeurant à : {{ employee.address }}<br>
+            Email : {{ employee.user.email }}<br>
+            Téléphone : {{ employee.phone }}
+        </p>
+        <p style="text-align: center;"><strong>Ci-après dénommé(e) "le Salarié"</strong></p>
+        <p style="text-align: center;">D'AUTRE PART,</p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">IL A ÉTÉ CONVENU CE QUI SUIT :</div>
+
+        <div class="article">
+            <p><strong>ARTICLE 1 - ENGAGEMENT</strong></p>
+            <p>
+                L'Employeur engage le Salarié qui accepte, aux clauses et conditions du présent contrat.
+            </p>
+        </div>
+
+        <div class="article">
+            <p><strong>ARTICLE 2 - FONCTIONS</strong></p>
+            <p>
+                Le Salarié est engagé en qualité de <strong>{{ employee.position }}</strong> 
+                au sein du département <strong>{{ employee.department }}</strong>.
+            </p>
+        </div>
+
+        <div class="article">
+            <p><strong>ARTICLE 3 - DATE D'EFFET</strong></p>
+            <p>
+                Le présent contrat prend effet le <strong>{{ employee.date_hired|date:"d/m/Y" }}</strong>.
+            </p>
+        </div>
+
+        <div class="article">
+            <p><strong>ARTICLE 4 - RÉMUNÉRATION</strong></p>
+            <p>
+                En contrepartie de son travail, le Salarié percevra une rémunération mensuelle brute de 
+                <strong>{{ employee.base_salary }} €</strong>.
+            </p>
+        </div>
+
+        <div class="article">
+            <p><strong>ARTICLE 5 - DURÉE DU TRAVAIL</strong></p>
+            <p>
+                Le Salarié est soumis à la durée légale du travail en vigueur.
+            </p>
+        </div>
+    </div>
+
+    <div class="signature-block">
+        <div class="signature-left">
+            <p>Fait à ____________</p>
+            <p>Le {{ current_date|date:"d/m/Y" }}</p>
+            <br><br>
+            <p><strong>L'Employeur</strong></p>
+            <p>(Signature et cachet)</p>
+        </div>
+        <div class="signature-right">
+            <p>Fait à ____________</p>
+            <p>Le {{ current_date|date:"d/m/Y" }}</p>
+            <br><br>
+            <p><strong>Le Salarié</strong></p>
+            <p>(Signature précédée de "Lu et approuvé")</p>
+        </div>
+    </div>
+</body>
+</html>

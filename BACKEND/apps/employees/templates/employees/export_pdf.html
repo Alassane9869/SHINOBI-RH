@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background-color: #4472C4;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            padding: 6px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .header {
+            margin-bottom: 20px;
+        }
+        .company-name {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #4472C4;
+        }
+        .export-date {
+            color: #666;
+            font-size: 9pt;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div class="export-date">Exporté le {{ export_date }}</div>
+    </div>
+    
+    <h1>Liste des Employés</h1>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Poste</th>
+                <th>Département</th>
+                <th>Email</th>
+                <th>Téléphone</th>
+                <th>Date d'embauche</th>
+                <th>Salaire</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in data %}
+            <tr>
+                <td>{{ employee.user__first_name }} {{ employee.user__last_name }}</td>
+                <td>{{ employee.position }}</td>
+                <td>{{ employee.department|default:"-" }}</td>
+                <td>{{ employee.user__email }}</td>
+                <td>{{ employee.phone|default:"-" }}</td>
+                <td>{{ employee.date_hired|default:"-" }}</td>
+                <td>{{ employee.base_salary|default:"-" }} €</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px; text-align: center; color: #666; font-size: 8pt;">
+        Total: {{ data|length }} employé(s)
+    </div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12pt;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        .receipt-info {
+            margin: 20px 0;
+        }
+        .amount-box {
+            background-color: #f0f0f0;
+            padding: 20px;
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 30px 0;
+            border: 2px solid #333;
+        }
+        .details {
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>REÇU DE PAIEMENT</h1>
+        <p>N° {{ payment_number }}</p>
+    </div>
+
+    <div class="receipt-info">
+        <p><strong>{{ company.name }}</strong></p>
+        <p>{{ company.address }}</p>
+        <p>Email: {{ company.email }} | Tél: {{ company.phone }}</p>
+    </div>
+
+    <div class="details">
+        <p><strong>Bénéficiaire :</strong> {{ employee.user.get_full_name }}</p>
+        <p><strong>Période :</strong> {{ month }}/{{ year }}</p>
+        <p><strong>Date de paiement :</strong> {{ payment_date|date:"d/m/Y" }}</p>
+    </div>
+
+    <div class="amount-box">
+        MONTANT PAYÉ : {{ net_salary }} €
+    </div>
+
+    <div class="details">
+        <p><strong>Détails :</strong></p>
+        <ul>
+            <li>Salaire de base : {{ basic_salary }} €</li>
+            <li>Bonus : {{ bonus }} €</li>
+            <li>Déductions : {{ deductions }} €</li>
+            <li><strong>Net payé : {{ net_salary }} €</strong></li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>Fait à ____________, le {{ current_date|date:"d/m/Y" }}</p>
+        <br><br>
+        <p>Signature et cachet</p>
+    </div>
+</body>
+</html>
