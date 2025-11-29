@@ -113,7 +113,7 @@ const Users: React.FC = () => {
     const { data: usersData, isLoading: usersLoading, refetch } = useQuery({
         queryKey: ['users'],
         queryFn: async () => {
-            const response = await axiosClient.get('/api/auth/users/');
+            const response = await axiosClient.get('/api/auth/users/?page_size=1000');
             // Handle both paginated and direct array responses
             const data = response.data.results || response.data;
             return Array.isArray(data) ? data : [];
@@ -353,33 +353,33 @@ const Users: React.FC = () => {
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div className="max-w-7xl mx-auto p-6 space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                            <UserIcon className="text-primary-600" size={32} />
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                            <UserIcon className="text-primary-600 w-8 h-8" />
                             Gestion des Utilisateurs
                         </h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                             {filteredUsers.length} utilisateur(s) • {activeUsers} actif(s)
                         </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => {
                                 refetch();
                                 toast.success('Données actualisées');
                             }}
-                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
                         >
-                            <RefreshCw size={20} />
-                            Actualiser
+                            <RefreshCw size={16} />
+                            <span className="hidden sm:inline">Actualiser</span>
                         </button>
                         <button
                             onClick={exportToCSV}
-                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
                         >
-                            <Download size={20} />
-                            Exporter
+                            <Download size={16} />
+                            <span className="hidden sm:inline">Exporter</span>
                         </button>
                         <button
                             onClick={() => {
@@ -387,10 +387,11 @@ const Users: React.FC = () => {
                                 reset();
                                 setIsModalOpen(true);
                             }}
-                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2"
+                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex items-center gap-2 text-sm"
                         >
-                            <Plus size={20} />
-                            Nouvel Utilisateur
+                            <Plus size={16} />
+                            <span className="hidden sm:inline">Nouvel Utilisateur</span>
+                            <span className="sm:hidden">Nouveau</span>
                         </button>
                     </div>
                 </div>
@@ -815,7 +816,7 @@ const Users: React.FC = () => {
                                         {...register('role')}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                     >
-                                        <option value="owner">Owner</option>
+                                        {currentUser?.role === 'owner' && <option value="owner">Owner</option>}
                                         <option value="admin">Admin</option>
                                         <option value="rh">RH</option>
                                         <option value="manager">Manager</option>

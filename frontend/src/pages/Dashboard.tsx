@@ -19,7 +19,7 @@ const Dashboard: React.FC = () => {
     const { data: stats, isLoading } = useQuery<DashboardStats>({
         queryKey: ['dashboard-stats'],
         queryFn: async () => {
-            const response = await axiosClient.get<DashboardStats>('/api/dashboard/stats/');
+            const response = await axiosClient.get<DashboardStats>('/api/dashboard/');
             return response.data;
         },
     });
@@ -36,14 +36,7 @@ const Dashboard: React.FC = () => {
         );
     }
 
-    const chartData: ChartData[] = [
-        { name: 'Jan', value: stats?.total_employees || 45 },
-        { name: 'Fév', value: 52 },
-        { name: 'Mar', value: 48 },
-        { name: 'Avr', value: 61 },
-        { name: 'Mai', value: 55 },
-        { name: 'Juin', value: stats?.total_employees || 70 },
-    ];
+    const chartData: ChartData[] = stats?.chart_data || [];
 
     const StatCard = ({ title, value, icon: Icon, trend, color, delay }: any) => (
         <motion.div
@@ -64,7 +57,7 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-1 font-medium">{title}</p>
-                    <p className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent">
+                    <p className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent">
                         {value}
                     </p>
                 </div>
@@ -123,8 +116,8 @@ const Dashboard: React.FC = () => {
                     delay={0.3}
                 />
                 <StatCard
-                    title="Paies"
-                    value={stats?.total_payrolls || 0}
+                    title="Masse Salariale"
+                    value={`${(stats?.payroll_mass || 0).toLocaleString()} FCFA`}
                     icon={DollarSign}
                     trend="100%"
                     color="from-purple-500 to-pink-500"

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Building2, Mail, Lock, User, Eye, EyeOff, CheckCircle2, Sparkles, Rocket, ArrowRight } from 'lucide-react';
+import { Building2, Mail, Lock, User, Eye, EyeOff, CheckCircle2, Sparkles, Rocket, ArrowRight, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axiosClient from '../api/axiosClient';
 import { Button } from '../components/ui';
@@ -160,7 +160,7 @@ const RegisterCompany: React.FC = () => {
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
                     whileHover={{ y: -5 }}
-                    className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-8 relative overflow-hidden"
+                    className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl p-6 md:p-8 relative overflow-hidden"
                 >
                     {/* Card Glow Effect */}
                     <motion.div
@@ -302,20 +302,26 @@ const RegisterCompany: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.9 }}
                         >
-                            <Button
+                            <motion.button
                                 type="submit"
-                                variant="primary"
-                                className="w-full group"
-                                loading={isLoading}
+                                disabled={isLoading}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                className="w-full px-8 py-4 bg-gradient-to-r from-primary-600 to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-primary-500/50 hover:shadow-primary-500/70 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <motion.div whileHover={{ y: -2 }}>
-                                    <Rocket className="w-5 h-5" />
-                                </motion.div>
-                                Créer mon compte
-                                <motion.div whileHover={{ x: 3 }}>
-                                    <ArrowRight className="w-5 h-5" />
-                                </motion.div>
-                            </Button>
+                                {isLoading ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Chargement...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Rocket className="w-5 h-5" />
+                                        Créer mon compte
+                                        <ArrowRight className="w-5 h-5" />
+                                    </>
+                                )}
+                            </motion.button>
                         </motion.div>
                     </form>
 
@@ -332,6 +338,16 @@ const RegisterCompany: React.FC = () => {
                                 Se connecter
                             </Link>
                         </p>
+                        <div className="flex items-center justify-center gap-6 mt-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-1.5">
+                                <Shield className="w-3.5 h-3.5 text-primary-400" />
+                                <span>Données cryptées</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-primary-400" />
+                                <span>RGPD Compliant</span>
+                            </div>
+                        </div>
                     </motion.div>
                 </motion.div>
 

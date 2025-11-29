@@ -13,7 +13,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Return only users from the same company
-        if self.request.user.is_superuser:
+        if self.request.user.is_saas_owner:
             return CustomUser.objects.all()
         return CustomUser.objects.filter(company=self.request.user.company)
 
@@ -156,6 +156,7 @@ class RegisterCompanyView(APIView):
                 "message": "Entreprise et compte administrateur créés avec succès.",
                 "user": UserSerializer(user).data
             }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class SaasAdminViewSet(viewsets.ViewSet):
     """
     API de gestion globale pour le Propriétaire SaaS.

@@ -1,0 +1,122 @@
+{% extends "exports/pdf/base_simple.html" %}
+
+{% block content %}
+<style>
+    .info-box {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};
+    }
+    .stat-table {
+        width: 100%;
+        margin: 30px 0;
+        border: none;
+    }
+    .stat-cell {
+        width: 25%;
+        text-align: center;
+        padding: 10px;
+        border: none;
+    }
+    .stat-value {
+        font-size: 24pt;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .table-header {
+        background-color: {{ branding.primary_color|default:'#4472C4' }};
+        color: white;
+    }
+    .status-present { color: {{ branding.secondary_color|default:'#2e7d32' }}; font-weight: bold; }
+    .status-late { color: {{ branding.accent_color|default:'#ed6c02' }}; font-weight: bold; }
+    .status-absent { color: #d32f2f; font-weight: bold; }
+    .status-excused { color: #1976d2; font-weight: bold; }
+</style>
+
+<!-- Informations -->
+<div class="info-box">
+    <h2 style="margin-top: 0; color: {{ branding.primary_color|default:'#4472C4' }};">Informations</h2>
+    <p><strong>Employé :</strong> {{ employee.user.get_full_name }}</p>
+    <p><strong>Département :</strong> {{ employee.department|default:"-" }}</p>
+    <p><strong>Période :</strong> {{ period }}</p>
+</div>
+
+<!-- Résumé Statistique -->
+<table class="stat-table">
+    <tr>
+        <td class="stat-cell">
+            <h3 style="color: {{ branding.secondary_color|default:'#2e7d32' }}; margin: 0;">Présents</h3>
+            <p class="stat-value" style="color: {{ branding.secondary_color|default:'#2e7d32' }};">{{ attendance_summary.present }}</p>
+        </td>
+        <td class="stat-cell">
+            <h3 style="color: {{ branding.accent_color|default:'#ed6c02' }}; margin: 0;">Retards</h3>
+            <p class="stat-value" style="color: {{ branding.accent_color|default:'#ed6c02' }};">{{ attendance_summary.late }}</p>
+        </td>
+        <td class="stat-cell">
+            <h3 style="color: #d32f2f; margin: 0;">Absents</h3>
+            <p class="stat-value" style="color: #d32f2f;">{{ attendance_summary.absent }}</p>
+        </td>
+        <td class="stat-cell">
+            <h3 style="color: #1976d2; margin: 0;">Excusés</h3>
+            <p class="stat-value" style="color: #1976d2;">{{ attendance_summary.excused }}</p>
+        </td>
+    </tr>
+</table>
+
+<!-- Détails -->
+<h2 style="color: {{ branding.primary_color|default:'#4472C4' }}; margin-top: 30px;">Détails de Présence</h2>
+
+<table>
+    <thead class="table-header">
+        <tr>
+            <th style="width: 15%;">Date</th>
+            <th style="width: 15%;">Arrivée</th>
+            <th style="width: 15%;">Départ</th>
+            <th style="width: 15%;">Heures</th>
+            <th style="width: 20%;">Statut</th>
+            <th style="width: 20%;">Retard</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in attendance_records %}
+        <tr>
+            <td>{{ record.date|date:"d/m/Y" }}</td>
+            <td>{{ record.time_in|time:"H:i"|default:"-" }}</td>
+            <td>{{ record.time_out|time:"H:i"|default:"-" }}</td>
+            <td>{{ record.hours_worked|default:"-" }}</td>
+            <td>
+                {% if record.status == 'present' %}
+                    <span class="status-present">Présent</span>
+                {% elif record.status == 'late' %}
+                    <span class="status-late">Retard</span>
+                {% elif record.status == 'absent' %}
+                    <span class="status-absent">Absent</span>
+                {% else %}
+                    <span class="status-excused">Excusé</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if record.delay_minutes %}
+                    <span style="color: #d32f2f;">{{ record.delay_minutes }} min</span>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Résumé -->
+<div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-top: 2px solid #ddd;">
+    <p><strong>Total jours ouvrés :</strong> {{ attendance_summary.total }}</p>
+    <p><strong>Taux de présence :</strong> 
+        {% if attendance_summary.total > 0 %}
+            {% widthratio attendance_summary.present|add:attendance_summary.late attendance_summary.total 100 %}%
+        {% else %}
+            0%
+        {% endif %}
+    </p>
+</div>
+{% endblock %}

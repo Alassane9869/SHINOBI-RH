@@ -47,7 +47,7 @@ const SaasAdmin = () => {
     const { data: companiesData, isLoading: companiesLoading, refetch } = useQuery({
         queryKey: ['all-companies'],
         queryFn: async () => {
-            const response = await axiosClient.get('/api/company/');
+            const response = await axiosClient.get('/api/company/?page_size=1000');
             return response.data.results || response.data;
         },
         refetchInterval: 30000,
@@ -304,8 +304,8 @@ const SaasAdmin = () => {
                                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                             <div
                                                 className={`h-2 rounded-full transition-all ${plan === 'free' ? 'bg-gray-500' :
-                                                        plan === 'startup' ? 'bg-blue-500' :
-                                                            'bg-purple-500'
+                                                    plan === 'startup' ? 'bg-blue-500' :
+                                                        'bg-purple-500'
                                                     }`}
                                                 style={{ width: `${percentage}%` }}
                                             />

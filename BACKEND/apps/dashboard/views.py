@@ -15,8 +15,53 @@ class DashboardViewSet(viewsets.ViewSet):
 
     def list(self, request):
         """Get dashboard stats"""
-        # ... existing dashboard logic or placeholder ...
-        return Response({"message": "Dashboard API"})
+        company = request.user.company
+        today = timezone.now().date()
+        current_month = today.month
+        current_year = today.year
+        
+        # Calculate statistics
+        total_employees = Employee.objects.filter(company=company).count()
+        pending_leaves = Leave.objects.filter(company=company, status='pending').count()
+        total_attendances = Attendance.objects.filter(
+            company=company,
+            date=today
+        ).count()
+        total_payrolls = Payroll.objects.filter(
+            company=company,
+            month=current_month,
+            year=current_year
+        ).count()
+        
+        payroll_mass = Payroll.objects.filter(
+            company=company,
+            month=current_month,
+            year=current_year
+        ).aggregate(Sum('net_salary'))['net_salary__sum'] or 0
+        
+        # Calculate chart data (last 6 months)
+        chart_data = []
+        for i in range(5, -1, -1):
+            date = today - timedelta(days=i*30)
+            month_name = date.strftime('%b')
+            # Count employees hired before or on this month
+            count = Employee.objects.filter(
+                company=company,
+                date_hired__lte=date
+            ).count()
+            chart_data.append({
+                "name": month_name,
+                "value": count
+            })
+        
+        return Response({
+            "total_employees": total_employees,
+            "pending_leaves": pending_leaves,
+            "total_attendances": total_attendances,
+            "total_payrolls": total_payrolls,
+            "payroll_mass": payroll_mass,
+            "chart_data": chart_data
+        })
 
     @action(detail=False, methods=['get'], url_path='export/pdf')
     def export_pdf(self, request):
@@ -38,7 +83,7 @@ class DashboardViewSet(viewsets.ViewSet):
         data = [
             {'Indicateur': 'Nombre d\'employés', 'Valeur': str(total_employees)},
             {'Indicateur': 'Congés en attente', 'Valeur': str(leaves_pending)},
-            {'Indicateur': 'Masse salariale (Mois en cours)', 'Valeur': f"{payroll_mass} €"},
+            {'Indicateur': 'Masse salariale (Mois en cours)', 'Valeur': f"{payroll_mass} FCFA"},
             {'Indicateur': 'Date du rapport', 'Valeur': today.strftime("%d/%m/%Y")},
         ]
 

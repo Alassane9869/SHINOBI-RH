@@ -7,6 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     size?: 'sm' | 'md' | 'lg';
     loading?: boolean;
     icon?: LucideIcon;
+    iconPosition?: 'left' | 'right';
     children: React.ReactNode;
 }
 
@@ -15,6 +16,7 @@ const Button: React.FC<ButtonProps> = ({
     size = 'md',
     loading = false,
     icon: Icon,
+    iconPosition = 'left',
     children,
     className = '',
     disabled,
@@ -29,18 +31,21 @@ const Button: React.FC<ButtonProps> = ({
     // Les variants sont gérés par les classes CSS globales
     const variantClass = `btn-${variant}`;
 
+    const iconElement = loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+    ) : Icon ? (
+        <Icon className="w-4 h-4" />
+    ) : null;
+
     return (
         <button
             className={`btn ${variantClass} ${sizes[size]} ${className}`}
             disabled={disabled || loading}
             {...props}
         >
-            {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-            ) : Icon ? (
-                <Icon className="w-4 h-4" />
-            ) : null}
+            {iconPosition === 'left' && iconElement}
             {children}
+            {iconPosition === 'right' && iconElement}
         </button>
     );
 };

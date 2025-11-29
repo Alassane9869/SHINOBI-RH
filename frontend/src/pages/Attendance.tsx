@@ -14,7 +14,7 @@ import { Attendance as AttendanceType, Employee } from '../types';
 import { Button, Input, Select } from '../components/ui';
 
 const attendanceSchema = z.object({
-    employee: z.coerce.number().positive('Employé requis'),
+    employee: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== 0, 'Employé requis'),
     date: z.string().min(1, 'Date requise'),
     time_in: z.string().optional(),
     time_out: z.string().optional(),

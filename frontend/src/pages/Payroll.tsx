@@ -14,10 +14,10 @@ import { Payroll as PayrollType, Employee } from '../types';
 import { Button, Input, Select } from '../components/ui';
 
 const payrollSchema = z.object({
-    employee: z.coerce.number().positive('Employé requis'),
+    employee: z.string().min(1, 'Employé requis'),
     month: z.coerce.number().min(1).max(12, 'Mois entre 1 et 12'),
     year: z.coerce.number().min(2020, 'Année invalide'),
-    base_salary: z.coerce.number().positive('Salaire requis'),
+    basic_salary: z.coerce.number().positive('Salaire requis'),
     bonus: z.coerce.number().optional(),
     deductions: z.coerce.number().optional(),
 });
@@ -142,7 +142,7 @@ const Payroll: React.FC = () => {
         { key: 'employee', label: 'Employé', render: (row) => row.employee_name || String(row.employee) },
         { key: 'month', label: 'Mois' },
         { key: 'year', label: 'Année' },
-        { key: 'base_salary', label: 'Salaire', render: (row) => `${row.base_salary} €` },
+        { key: 'basic_salary', label: 'Salaire', render: (row) => `${row.basic_salary} €` },
         { key: 'net_salary', label: 'Net', render: (row) => `${row.net_salary} €` },
         {
             key: 'is_paid',
@@ -261,9 +261,9 @@ const Payroll: React.FC = () => {
                     <Input
                         label="Salaire de base"
                         type="number"
-                        {...register('base_salary')}
+                        {...register('basic_salary')}
                         icon={<DollarSign className="w-5 h-5" />}
-                        error={errors.base_salary?.message}
+                        error={errors.basic_salary?.message}
                         required
                     />
 

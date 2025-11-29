@@ -17,6 +17,7 @@ import {
     Sparkles,
     Rocket,
     Target,
+    Mail,
 } from 'lucide-react';
 import { Button } from '../components/ui';
 
@@ -119,7 +120,7 @@ const LandingPage: React.FC = () => {
                                     <Sparkles className="w-5 h-5 text-white" />
                                 </div>
                             </div>
-                            <span className="font-bold text-2xl bg-gradient-to-r from-white to-primary-400 bg-clip-text text-transparent">
+                            <span className="font-bold text-xl md:text-2xl bg-gradient-to-r from-white to-primary-400 bg-clip-text text-transparent">
                                 SHINOBI RH
                             </span>
                         </motion.div>
@@ -128,15 +129,31 @@ const LandingPage: React.FC = () => {
                             animate={{ opacity: 1, x: 0 }}
                             className="flex gap-3"
                         >
-                            <Link to="/login">
-                                <Button variant="ghost" className="text-white hover:text-white hover:bg-white/10">
+                            <Link to="/login" className="hidden sm:block">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    className="px-6 py-2.5 text-white hover:bg-white/10 rounded-lg font-medium transition-all"
+                                >
                                     Se connecter
-                                </Button>
+                                </motion.button>
                             </Link>
                             <Link to="/register">
-                                <Button variant="primary" icon={Rocket}>
-                                    Essai Gratuit
-                                </Button>
+                                <motion.button
+                                    whileHover={{ scale: 1.05, y: -2 }}
+                                    className="px-4 sm:px-6 py-2.5 bg-gradient-to-r from-primary-600 to-cyan-500 text-white font-semibold rounded-lg shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all flex items-center gap-2 text-sm sm:text-base"
+                                >
+                                    <Rocket className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Essai Gratuit</span>
+                                    <span className="sm:hidden">Essayer</span>
+                                </motion.button>
+                            </Link>
+                            <Link to="/login" className="sm:hidden flex items-center">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    className="p-2.5 text-white hover:bg-white/10 rounded-lg font-medium transition-all"
+                                >
+                                    <Users className="w-5 h-5" />
+                                </motion.button>
                             </Link>
                         </motion.div>
                     </div>
@@ -195,20 +212,25 @@ const LandingPage: React.FC = () => {
                             className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
                         >
                             <Link to="/register">
-                                <Button variant="primary" size="lg" className="group">
-                                    <motion.div whileHover={{ y: -2 }}>
-                                        <Rocket className="w-5 h-5" />
-                                    </motion.div>
+                                <motion.button
+                                    whileHover={{ scale: 1.05, y: -2 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="group relative px-8 py-4 bg-gradient-to-r from-primary-600 to-cyan-500 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/50 hover:shadow-primary-500/70 transition-all flex items-center gap-3 w-full sm:w-auto justify-center"
+                                >
+                                    <Rocket className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
                                     Commencer maintenant
-                                    <motion.div whileHover={{ x: 3 }}>
-                                        <ArrowRight className="w-5 h-5" />
-                                    </motion.div>
-                                </Button>
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </motion.button>
                             </Link>
                             <Link to="/login">
-                                <Button variant="outline" size="lg" icon={Target} className="border-white/30 text-white hover:bg-white/10">
+                                <motion.button
+                                    whileHover={{ scale: 1.05, y: -2 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="group px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl border-2 border-white/20 hover:border-white/40 hover:bg-white/20 transition-all flex items-center gap-3 w-full sm:w-auto justify-center"
+                                >
+                                    <Target className="w-5 h-5" />
                                     Voir la démo
-                                </Button>
+                                </motion.button>
                             </Link>
                         </motion.div>
 
@@ -239,6 +261,27 @@ const LandingPage: React.FC = () => {
                                 </motion.div>
                             ))}
                         </div>
+
+                        {/* Trust Badge */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 1.2 }}
+                            className="mt-12 flex flex-wrap items-center justify-center gap-8 text-gray-500 text-sm"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary-400" />
+                                <span>RGPD Compliant</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-primary-400" />
+                                <span>SSL Sécurisé</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 text-primary-400 fill-current" />
+                                <span>Support 24/7</span>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
@@ -322,13 +365,15 @@ const LandingPage: React.FC = () => {
                                 Rejoignez les entreprises innovantes qui ont choisi SHINOBI RH pour leur gestion.
                             </p>
                             <Link to="/register">
-                                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                                    <Button variant="outline" size="lg" className="bg-white text-primary-600 hover:bg-gray-50 border-white">
-                                        <Sparkles className="w-5 h-5" />
-                                        Créer un compte gratuit
-                                        <ArrowRight className="w-5 h-5" />
-                                    </Button>
-                                </motion.div>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="px-8 py-4 bg-white text-primary-600 font-bold rounded-xl shadow-lg hover:bg-gray-50 transition-all flex items-center gap-3 mx-auto"
+                                >
+                                    <Sparkles className="w-5 h-5" />
+                                    Créer un compte gratuit
+                                    <ArrowRight className="w-5 h-5" />
+                                </motion.button>
                             </Link>
                             <div className="flex flex-wrap justify-center gap-8 mt-10 text-white/90 text-sm">
                                 {['Pas de carte requise', 'Setup en 2 min', 'Support prioritaire'].map((item, i) => (
@@ -350,20 +395,121 @@ const LandingPage: React.FC = () => {
             </section>
 
             {/* Footer */}
-            <footer className="relative border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8 bg-gray-900/50 backdrop-blur-sm">
-                <div className="max-w-7xl mx-auto text-center">
-                    <div className="flex items-center justify-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                            <Sparkles className="w-5 h-5 text-white" />
+            <footer className="relative border-t border-white/10 py-16 px-4 sm:px-6 lg:px-8 bg-gray-900/50 backdrop-blur-sm">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                        {/* Brand */}
+                        <div className="md:col-span-1">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                                    <Sparkles className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="font-bold text-xl bg-gradient-to-r from-white to-primary-400 bg-clip-text text-transparent">
+                                    SHINOBI RH
+                                </span>
+                            </div>
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                La solution de gestion RH conçue pour l'ère moderne. Transformez votre administration en efficacité.
+                            </p>
                         </div>
-                        <span className="font-bold text-2xl bg-gradient-to-r from-white to-primary-400 bg-clip-text text-transparent">
-                            SHINOBI RH
-                        </span>
+
+                        {/* Contact */}
+                        <div>
+                            <h3 className="font-bold text-white mb-4 flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-primary-400" />
+                                Contact
+                            </h3>
+                            <div className="space-y-3 text-sm">
+                                <a href="mailto:shinobi_it@gmail.com" className="text-gray-400 hover:text-primary-400 transition-colors flex items-start gap-2 group">
+                                    <Mail className="w-4 h-4 mt-0.5 group-hover:scale-110 transition-transform" />
+                                    <span>shinobi_it@gmail.com</span>
+                                </a>
+                                <a href="tel:+22366826207" className="text-gray-400 hover:text-primary-400 transition-colors flex items-start gap-2 group">
+                                    <svg className="w-4 h-4 mt-0.5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                    <span>+223 66 82 62 07</span>
+                                </a>
+                                <div className="text-gray-400 flex items-start gap-2">
+                                    <svg className="w-4 h-4 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>Bamako, Mali</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Liens Rapides */}
+                        <div>
+                            <h3 className="font-bold text-white mb-4">Liens Rapides</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li>
+                                    <Link to="/register" className="text-gray-400 hover:text-primary-400 transition-colors hover:translate-x-1 inline-block">
+                                        Créer un compte
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link to="/login" className="text-gray-400 hover:text-primary-400 transition-colors hover:translate-x-1 inline-block">
+                                        Se connecter
+                                    </Link>
+                                </li>
+                                <li>
+                                    <a href="#features" className="text-gray-400 hover:text-primary-400 transition-colors hover:translate-x-1 inline-block">
+                                        Fonctionnalités
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="#pricing" className="text-gray-400 hover:text-primary-400 transition-colors hover:translate-x-1 inline-block">
+                                        Tarifs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* Informations */}
+                        <div>
+                            <h3 className="font-bold text-white mb-4">Informations</h3>
+                            <ul className="space-y-3 text-sm">
+                                <li className="text-gray-400 flex items-center gap-2">
+                                    <Shield className="w-4 h-4 text-primary-400" />
+                                    RGPD Compliant
+                                </li>
+                                <li className="text-gray-400 flex items-center gap-2">
+                                    <CheckCircle className="w-4 h-4 text-primary-400" />
+                                    SSL Sécurisé
+                                </li>
+                                <li className="text-gray-400 flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-primary-400" />
+                                    Support 24/7
+                                </li>
+                                <li className="text-gray-400 flex items-center gap-2">
+                                    <Award className="w-4 h-4 text-primary-400" />
+                                    99.9% Uptime
+                                </li>
+                            </ul>
+                        </div>
                     </div>
-                    <p className="text-gray-400 mb-4">
-                        La solution de gestion RH conçue pour l'ère moderne.
-                    </p>
-                    <p className="text-sm text-gray-600">© 2025 SHINOBI RH. Fait avec ❤️ pour les équipes modernes.</p>
+
+                    {/* Bottom Bar */}
+                    <div className="pt-8 border-t border-white/10">
+                        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                            <p className="text-sm text-gray-500 text-center md:text-left">
+                                © 2025 SHINOBI RH. Tous droits réservés. Fait avec ❤️ pour les équipes modernes.
+                            </p>
+                            <div className="flex gap-4">
+                                <a href="#" className="text-gray-500 hover:text-primary-400 transition-colors">
+                                    Confidentialité
+                                </a>
+                                <a href="#" className="text-gray-500 hover:text-primary-400 transition-colors">
+                                    CGU
+                                </a>
+                                <a href="#" className="text-gray-500 hover:text-primary-400 transition-colors">
+                                    Mentions légales
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </footer>
         </div>

@@ -17,6 +17,123 @@ from apps.core.utils.advanced_exporters import (
 )
 from apps.core.export_models import ExportLog
 
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsCompanyMember])
+def export_daily_advanced_view(request):
+    """
+    Rapport quotidien de présence avancé (Standalone View).
+    """
+    print(f"DEBUG: export_daily_advanced_view called by {request.user}")
+    
+    report_date_str = request.query_params.get('date')
+    export_format = request.query_params.get('format', 'pdf').lower()
+    
+    if report_date_str:
+        try:
+            report_date = datetime.strptime(report_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Format de date invalide (YYYY-MM-DD requis)'}, status=400)
+    else:
+        report_date = date.today()
+    
+    # Récupérer les présences du jour
+    attendances = Attendance.objects.filter(
+        company=request.user.company,
+        date=report_date
+    ).select_related('employee__user', 'employee')
+    
+    # Calcul des statistiques
+    summary = {
+        'present': attendances.filter(status='present').count(),
+        'late': attendances.filter(status='late').count(),
+        'absent': attendances.filter(status='absent').count(),
+        'excused': attendances.filter(status='excused').count()
+    }
+    
+    # Détecter les anomalies
+    anomalies = []
+    for att in attendances:
+        if att.status == 'present' and not att.check_in:
+            anomalies.append(f"{att.employee.user.get_full_name()} : Marqué présent mais sans pointage d'arrivée")
+        if att.check_out and att.check_in and att.check_out < att.check_in:
+            anomalies.append(f"{att.employee.user.get_full_name()} : Heure de départ antérieure à l'arrivée")
+    
+    # Calculer heures et retards
+    attendances_list = []
+    for att in attendances:
+        hours_worked = None
+        delay_minutes = None
+        
+        if att.check_in and att.check_out:
+            hours = (datetime.combine(date.min, att.check_out) - 
+                    datetime.combine(date.min, att.check_in)).total_seconds() / 3600
+            hours_worked = round(hours, 2)
+        
+        if att.status == 'late' and att.check_in:
+            standard_time = datetime.strptime('08:00', '%H:%M').time()
+            if att.check_in > standard_time:
+                delay = (datetime.combine(date.min, att.check_in) - 
+                        datetime.combine(date.min, standard_time)).total_seconds() / 60
+                delay_minutes = int(delay)
+        
+        att.hours_worked = hours_worked
+        att.delay_minutes = delay_minutes
+        attendances_list.append(att)
+    
+    if export_format in ['excel', 'csv']:
+        data = []
+        for att in attendances_list:
+            data.append({
+                'Employé': att.employee.user.get_full_name(),
+                'Département': att.employee.department or '',
+                'Arrivée': att.check_in.strftime('%H:%M') if att.check_in else '',
+                'Départ': att.check_out.strftime('%H:%M') if att.check_out else '',
+                'Heures': att.hours_worked or 0,
+                'Statut': att.get_status_display(),
+                'Retard (min)': att.delay_minutes or 0,
+                'Notes': att.notes or ''
+            })
+        
+        if export_format == 'csv':
+            exporter = UTF8CSVExporter(
+                data=data,
+                filename=f"presence_quotidienne_{report_date.strftime('%Y%m%d')}",
+                company=request.user.company,
+                user=request.user
+            )
+        else:
+            exporter = AdvancedExcelExporter(
+                data=data,
+                filename=f"presence_quotidienne_{report_date.strftime('%Y%m%d')}",
+                sheet_name=f"Présence {report_date.strftime('%d/%m/%Y')}",
+                company=request.user.company,
+                user=request.user
+            )
+    else:
+        # Export PDF (ReportLab)
+        context = {
+            'report_date': report_date,
+            'attendances': attendances_list,
+            'summary': summary,
+            'anomalies': anomalies
+        }
+        
+        exporter = WeasyPrintPDFExporter(
+            data=[],
+            filename=f"presence_quotidienne_{report_date.strftime('%Y%m%d')}",
+            template_name='exports/pdf/daily_attendance.html', # Ignoré par ReportLab fallback
+            title=f"Rapport de Présence - {report_date.strftime('%d/%m/%Y')}",
+            subtitle=f"{len(attendances_list)} employé(s)",
+            company=request.user.company,
+            user=request.user,
+            context=context
+        )
+    
+    return exporter.export()
+
 class AttendanceViewSet(viewsets.ModelViewSet):
     serializer_class = AttendanceSerializer
     permission_classes = [permissions.IsAuthenticated, IsCompanyMember]
@@ -125,6 +242,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'], url_path='export/daily-advanced')
     def export_daily_advanced(self, request):
+        print(f"DEBUG: export_daily_advanced called by {request.user}")
         """
         Rapport quotidien de présence avancé avec statistiques et anomalies.
         
@@ -148,10 +266,7 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             date=report_date
         ).select_related('employee__user', 'employee')
         
-        if not attendances.exists():
-            return Response({'error': 'Aucune donnée pour cette date'}, status=404)
-        
-        # Calcul des statistiques
+        # Calcul des statistiques (même si vide)
         summary = {
             'present': attendances.filter(status='present').count(),
             'late': attendances.filter(status='late').count(),
@@ -280,9 +395,6 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             date__month=month,
             date__year=year
         ).select_related('employee__user', 'employee')
-        
-        if not attendances.exists():
-            return Response({'error': 'Aucune donnée pour cette période'}, status=404)
         
         # Calculer les jours ouvrés (approximation)
         import calendar

@@ -1,0 +1,216 @@
+{% extends "exports/pdf/base_simple.html" %}
+
+{% block content %}
+<!-- Photo et Informations Principales -->
+<div style="margin-bottom: 30px;">
+    <div class="info-section">
+        <h2>Informations Personnelles</h2>
+        <div class="info-row">
+            <span class="info-label">Matricule :</span>
+            <span class="info-value">{{ employee.id|truncatechars:12 }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Nom complet :</span>
+            <span class="info-value">{{ employee.user.get_full_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Email :</span>
+            <span class="info-value">{{ employee.user.email }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Téléphone :</span>
+            <span class="info-value">{{ employee.phone|default:"Non renseigné" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Adresse :</span>
+            <span class="info-value">{{ employee.address|default:"Non renseignée" }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Informations Professionnelles -->
+<div class="info-section">
+    <h2>Informations Professionnelles</h2>
+    <div class="info-row">
+        <span class="info-label">Poste :</span>
+        <span class="info-value">{{ employee.position }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Département :</span>
+        <span class="info-value">{{ employee.department|default:"Non assigné" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date d'embauche :</span>
+        <span class="info-value">{{ employee.date_hired|date:"d/m/Y"|default:"Non renseignée" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Ancienneté :</span>
+        <span class="info-value">{{ years_of_service|default:"0" }} an(s)</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Salaire de base :</span>
+        <span class="info-value">{{ employee.base_salary|floatformat:2 }} €</span>
+    </div>
+</div>
+
+<!-- Historique des Congés -->
+{% if leaves %}
+<h2 style="margin-top: 40px;">Historique des Congés</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Type</th>
+            <th style="width: 20%;">Début</th>
+            <th style="width: 20%;">Fin</th>
+            <th style="width: 15%;">Jours</th>
+            <th style="width: 20%;">Statut</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for leave in leaves %}
+        <tr>
+            <td>{{ leave.get_leave_type_display }}</td>
+            <td>{{ leave.start_date|date:"d/m/Y" }}</td>
+            <td>{{ leave.end_date|date:"d/m/Y" }}</td>
+            <td style="text-align: center;">{{ leave.days_count|default:"-" }}</td>
+            <td>
+                {% if leave.status == 'approved' %}
+                    <span style="color: #2e7d32; font-weight: bold;">{{ leave.get_status_display }}</span>
+                {% elif leave.status == 'rejected' %}
+                    <span style="color: #d32f2f; font-weight: bold;">{{ leave.get_status_display }}</span>
+                {% else %}
+                    <span style="color: #ed6c02; font-weight: bold;">{{ leave.get_status_display }}</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Historique de Présence (derniers 30 jours) -->
+{% if attendance_summary %}
+<h2 style="margin-top: 40px;">Récapitulatif de Présence (30 derniers jours)</h2>
+
+<div style="margin: 20px 0;">
+    <div class="info-section" style="display: inline-block; width: 22%; margin: 1%; text-align: center;">
+        <h3>Présent</h3>
+        <p style="font-size: 24pt; color: #2e7d32; font-weight: bold;">
+            {{ attendance_summary.present }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="display: inline-block; width: 22%; margin: 1%; text-align: center;">
+        <h3>Retards</h3>
+        <p style="font-size: 24pt; color: #ed6c02; font-weight: bold;">
+            {{ attendance_summary.late }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="display: inline-block; width: 22%; margin: 1%; text-align: center;">
+        <h3>Absences</h3>
+        <p style="font-size: 24pt; color: #d32f2f; font-weight: bold;">
+            {{ attendance_summary.absent }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="display: inline-block; width: 22%; margin: 1%; text-align: center;">
+        <h3>Excusées</h3>
+        <p style="font-size: 24pt; color: #4472C4; font-weight: bold;">
+            {{ attendance_summary.excused }}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Historique de Paie (6 derniers mois) -->
+{% if payrolls %}
+<h2 style="margin-top: 40px;">Historique de Paie (6 derniers mois)</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 20%;">Période</th>
+            <th style="width: 20%; text-align: right;">Salaire Base</th>
+            <th style="width: 15%; text-align: right;">Primes</th>
+            <th style="width: 15%; text-align: right;">Déductions</th>
+            <th style="width: 20%; text-align: right;">Net</th>
+            <th style="width: 10%;">Payé</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for payroll in payrolls %}
+        <tr>
+            <td>{{ payroll.month }}/{{ payroll.year }}</td>
+            <td style="text-align: right;">{{ payroll.basic_salary|floatformat:2 }}</td>
+            <td style="text-align: right;">{{ payroll.bonus|floatformat:2 }}</td>
+            <td style="text-align: right; color: #d32f2f;">{{ payroll.deductions|floatformat:2 }}</td>
+            <td style="text-align: right; font-weight: bold;">{{ payroll.net_salary|floatformat:2 }} €</td>
+            <td style="text-align: center;">
+                {% if payroll.is_paid %}
+                <span style="color: #2e7d32;">✓</span>
+                {% else %}
+                <span style="color: #ed6c02;">⧗</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Documents Joints -->
+{% if documents %}
+<h2 style="margin-top: 40px;">Documents Administratifs</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 40%;">Document</th>
+            <th style="width: 30%;">Type</th>
+            <th style="width: 30%;">Date d'ajout</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in documents %}
+        <tr>
+            <td>{{ doc.file.name|truncatechars:40 }}</td>
+            <td>{{ doc.get_document_type_display }}</td>
+            <td>{{ doc.created_at|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Informations Légales -->
+<div class="alert alert-info" style="margin-top: 40px;">
+    <strong>Document Confidentiel</strong><br>
+    Ce document contient des informations personnelles et confidentielles concernant l'employé(e).
+    Il est strictement réservé à un usage interne RH et ne peut être communiqué à des tiers
+    sans autorisation écrite de l'employé(e) concerné(e).
+</div>
+
+<!-- Signatures -->
+<div class="signature-section" style="margin-top: 60px;">
+    <div class="signature-box" style="float: left; width: 45%;">
+        <p><strong>Responsable RH</strong></p>
+        <div class="signature-line">
+            {{ company.name }}<br>
+            Date : {{ current_date|date:"d/m/Y" }}<br>
+            Signature et cachet
+        </div>
+    </div>
+    
+    <div class="signature-box" style="float: right; width: 45%;">
+        <p><strong>Employé(e)</strong></p>
+        <div class="signature-line">
+            {{ employee.user.get_full_name }}<br>
+            Date : {{ current_date|date:"d/m/Y" }}<br>
+            Signature
+        </div>
+    </div>
+    <div style="clear: both;"></div>
+</div>
+{% endblock %}

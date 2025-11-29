@@ -1,0 +1,97 @@
+{% extends "exports/pdf/base_simple.html" %}
+
+{% block content %}
+<style>
+    .info-box {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};
+    }
+    .stat-table {
+        width: 100%;
+        margin: 30px 0;
+        border: none;
+    }
+    .stat-cell {
+        width: 33%;
+        text-align: center;
+        padding: 10px;
+        border: none;
+    }
+    .stat-value {
+        font-size: 24pt;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    .table-header {
+        background-color: {{ branding.primary_color|default:'#4472C4' }};
+        color: white;
+    }
+    .status-approved { color: {{ branding.secondary_color|default:'#2e7d32' }}; font-weight: bold; }
+    .status-pending { color: {{ branding.accent_color|default:'#ed6c02' }}; font-weight: bold; }
+    .status-rejected { color: #d32f2f; font-weight: bold; }
+</style>
+
+<!-- Informations -->
+<div class="info-box">
+    <h2 style="margin-top: 0; color: {{ branding.primary_color|default:'#4472C4' }};">Informations</h2>
+    <p><strong>Employé :</strong> {{ employee.user.get_full_name }}</p>
+    <p><strong>Département :</strong> {{ employee.department|default:"-" }}</p>
+    <p><strong>Période :</strong> {{ period }}</p>
+</div>
+
+<!-- Résumé Statistique -->
+<table class="stat-table">
+    <tr>
+        <td class="stat-cell">
+            <h3 style="color: {{ branding.secondary_color|default:'#2e7d32' }}; margin: 0;">Approuvés</h3>
+            <p class="stat-value" style="color: {{ branding.secondary_color|default:'#2e7d32' }};">{{ leaves_summary.approved }}</p>
+        </td>
+        <td class="stat-cell">
+            <h3 style="color: {{ branding.accent_color|default:'#ed6c02' }}; margin: 0;">En attente</h3>
+            <p class="stat-value" style="color: {{ branding.accent_color|default:'#ed6c02' }};">{{ leaves_summary.pending }}</p>
+        </td>
+        <td class="stat-cell">
+            <h3 style="color: #d32f2f; margin: 0;">Refusés</h3>
+            <p class="stat-value" style="color: #d32f2f;">{{ leaves_summary.rejected }}</p>
+        </td>
+    </tr>
+</table>
+
+<!-- Détails -->
+<h2 style="color: {{ branding.primary_color|default:'#4472C4' }}; margin-top: 30px;">Détails des Congés</h2>
+
+<table>
+    <thead class="table-header">
+        <tr>
+            <th style="width: 20%;">Type</th>
+            <th style="width: 15%;">Début</th>
+            <th style="width: 15%;">Fin</th>
+            <th style="width: 15%;">Durée</th>
+            <th style="width: 15%;">Statut</th>
+            <th style="width: 20%;">Motif</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for leave in leaves %}
+        <tr>
+            <td>{{ leave.get_leave_type_display }}</td>
+            <td>{{ leave.start_date|date:"d/m/Y" }}</td>
+            <td>{{ leave.end_date|date:"d/m/Y" }}</td>
+            <td>{{ leave.end_date|timeuntil:leave.start_date }}</td>
+            <td>
+                {% if leave.status == 'approved' %}
+                    <span class="status-approved">Approuvé</span>
+                {% elif leave.status == 'pending' %}
+                    <span class="status-pending">En attente</span>
+                {% else %}
+                    <span class="status-rejected">Refusé</span>
+                {% endif %}
+            </td>
+            <td>{{ leave.reason|truncatewords:5|default:"-" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

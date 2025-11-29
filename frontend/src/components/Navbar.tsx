@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Moon, Sun, Settings, Zap, X, User, Building2, FileText, LogOut, ChevronRight, Loader2 } from 'lucide-react';
+import { Search, Bell, Moon, Sun, Settings, Zap, X, User, Building2, FileText, LogOut, ChevronRight, Loader2, Menu, Sparkles } from 'lucide-react';
 import useAuthStore from '../auth/AuthStore';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
+import { useSidebar } from '../context/SidebarContext';
 
 const Navbar: React.FC = () => {
     const { user, logout } = useAuthStore();
+    const { toggleSidebar } = useSidebar();
     const [darkMode, setDarkMode] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -124,12 +126,33 @@ const Navbar: React.FC = () => {
 
     return (
         <>
-            <nav className="relative h-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-8 flex items-center justify-between shadow-sm z-20">
+            <nav className="relative h-20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 px-4 md:px-8 flex items-center justify-between shadow-sm z-20">
                 {/* Effet de fond animé */}
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-50/20 via-transparent to-accent-50/20 dark:from-primary-950/20 dark:via-transparent dark:to-accent-950/20 pointer-events-none"></div>
 
-                {/* Search Trigger */}
-                <div className="relative flex-1 max-w-md z-10">
+                <div className="flex items-center gap-3">
+                    {/* Toggle Sidebar Button */}
+                    <button
+                        onClick={toggleSidebar}
+                        className="relative z-10 p-2.5 rounded-xl bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700"
+                        title="Masquer/Afficher le menu"
+                    >
+                        <Menu className="w-5 h-5" />
+                    </button>
+
+                    {/* Mobile Logo */}
+                    <div className="md:hidden flex items-center gap-2">
+                        <div className="relative w-8 h-8 bg-gradient-to-br from-primary-600 to-accent-500 rounded-lg flex items-center justify-center shadow-lg">
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-bold text-lg bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent">
+                            SHINOBI
+                        </span>
+                    </div>
+                </div>
+
+                {/* Search Trigger (Desktop) */}
+                <div className="hidden md:block relative flex-1 max-w-md z-10 mx-4">
                     <div
                         className="relative group cursor-pointer"
                         onClick={() => setIsSearchOpen(true)}
@@ -146,7 +169,14 @@ const Navbar: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-3 z-10">
+                <div className="flex items-center gap-2 md:gap-3 z-10">
+                    {/* Mobile Search Button */}
+                    <button
+                        onClick={() => setIsSearchOpen(true)}
+                        className="md:hidden p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-all"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
                     {/* Quick Action */}
                     <div className="relative">
                         <button

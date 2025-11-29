@@ -23,17 +23,51 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
 
-# Tenter d'importer WeasyPrint, utiliser xhtml2pdf en fallback
+# Vérifier la disponibilité de WeasyPrint sans l'importer
 WEASYPRINT_AVAILABLE = False
-try:
-    from weasyprint import HTML, CSS
-    from weasyprint.text.fonts import FontConfiguration
-    WEASYPRINT_AVAILABLE = True
-except (ImportError, OSError) as e:
-    # WeasyPrint non disponible (GTK manquant sur Windows ou autre)
-    print(f"⚠️ WeasyPrint non disponible: {e}")
+WEASYPRINT_ERROR = None
+
+def _check_weasyprint_available():
+    """Vérifie si WeasyPrint est disponible sans l'importer."""
+    global WEASYPRINT_AVAILABLE, WEASYPRINT_ERROR
+    try:
+        import subprocess
+        import sys
+        
+        # Tenter d'importer WeasyPrint dans un sous-processus
+        result = subprocess.run(
+            [sys.executable, '-c', 'import weasyprint; print("OK")'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        
+        if result.returncode == 0 and 'OK' in result.stdout:
+            WEASYPRINT_AVAILABLE = True
+            return True
+        else:
+            WEASYPRINT_ERROR = "WeasyPrint import failed"
+            if result.stderr:
+                # Extraire juste le message d'erreur principal
+                error_lines = result.stderr.split('\n')
+                for line in error_lines:
+                    if 'cannot load library' in line or 'GTK' in line or 'OSError' in line:
+                        WEASYPRINT_ERROR = line.strip()
+                        break
+            return False
+    except Exception as e:
+        WEASYPRINT_ERROR = str(e)
+        return False
+
+# Vérifier au chargement du module
+_check_weasyprint_available()
+
+if not WEASYPRINT_AVAILABLE:
+    print(f"⚠️ WeasyPrint non disponible: {WEASYPRINT_ERROR}")
     print("📝 Utilisation de xhtml2pdf en fallback pour la génération PDF")
-    from xhtml2pdf import pisa
+
+# Import xhtml2pdf pour fallback
+from xhtml2pdf import pisa
 
 # Import ReportLab pour fallback
 from reportlab.lib import colors
@@ -121,6 +155,31 @@ class WeasyPrintPDFExporter(BaseExporter):
         Returns:
             HttpResponse avec le PDF
         """
+        # Si WeasyPrint n'est pas disponible, utiliser le template simplifié
+        template_name = self.template_name
+        if not WEASYPRINT_AVAILABLE:
+            # Convertir le template vers sa version simplifiée
+            if template_name.endswith('.html'):
+                base_name = template_name.rsplit('.html', 1)[0]
+                simple_template = f"{base_name}_simple.html"
+                # Vérifier si le template simplifié existe
+                from django.template.loader import get_template
+                try:
+                    get_template(simple_template)
+                    template_name = simple_template
+                    print(f"ℹ️ Utilisation du template simplifié: {simple_template}")
+                except:
+                    print(f"⚠️ Template simplifié non trouvé: {simple_template}, utilisation du template original")
+        
+        # Récupérer le branding si non fourni
+        branding = self.context.get('branding')
+        if not branding and self.company:
+            try:
+                if hasattr(self.company, 'branding'):
+                    branding = self.company.branding
+            except Exception:
+                pass
+
         # Préparer le contexte pour le template
         context = {
             'title': self.title,
@@ -129,22 +188,37 @@ class WeasyPrintPDFExporter(BaseExporter):
             'user': self.user,
             'metadata': self._generate_metadata(),
             'current_date': timezone.now(),
+            'branding': branding,
             **self.context
         }
         
-        # Ajouter le QR code si document_id fourni
-        if self.document_id:
-            qr_code_data_uri = generate_qr_code_base64(
-                f"{settings.EXPORT_QR_VERIFICATION_BASE_URL}{self.document_type}/{self.document_id}"
-            )
-            context['qr_code'] = qr_code_data_uri
+        # Ajouter le QR code si document_id fourni (seulement si WeasyPrint disponible)
+        if self.document_id and WEASYPRINT_AVAILABLE:
+            try:
+                qr_verification_url = getattr(
+                    settings, 
+                    'EXPORT_QR_VERIFICATION_BASE_URL', 
+                    f'{settings.SITE_URL}/verify/'
+                )
+                qr_code_data_uri = generate_qr_code_base64(
+                    f"{qr_verification_url}{self.document_type}/{self.document_id}"
+                )
+                context['qr_code'] = qr_code_data_uri
+            except Exception as e:
+                # QR code generation failed, continue without it
+                print(f"⚠️ QR code generation failed: {e}")
+                context['qr_code'] = None
         
         # Rendre le template HTML
-        html_string = render_to_string(self.template_name, context)
+        html_string = render_to_string(template_name, context)
         
         if WEASYPRINT_AVAILABLE:
             # Utiliser WeasyPrint (meilleure qualité)
             try:
+                # Import lazy de WeasyPrint
+                from weasyprint import HTML, CSS
+                from weasyprint.text.fonts import FontConfiguration
+                
                 # Configuration des polices
                 font_config = FontConfiguration()
                 
@@ -176,6 +250,7 @@ class WeasyPrintPDFExporter(BaseExporter):
                 pdf_bytes = self._generate_with_xhtml2pdf(html_string)
         else:
             # Utiliser xhtml2pdf en fallback
+            print("ℹ️ Utilisation de xhtml2pdf pour la génération PDF")
             pdf_bytes = self._generate_with_xhtml2pdf(html_string)
         
         # Créer la réponse HTTP
@@ -187,24 +262,156 @@ class WeasyPrintPDFExporter(BaseExporter):
     
     def _generate_with_xhtml2pdf(self, html_string: str) -> bytes:
         """
-        Génère un PDF avec xhtml2pdf (fallback).
+        Génère un PDF avec ReportLab (fallback simple et fiable).
         
         Args:
-            html_string: HTML à convertir
+            html_string: HTML à convertir (ignoré, on génère directement avec ReportLab)
             
         Returns:
             bytes: Contenu du PDF
         """
         from io import BytesIO
-        from django.core.files.base import ContentFile
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        import logging
         
-        result = BytesIO()
-        pdf = pisa.pisaDocument(BytesIO(html_string.encode("UTF-8")), result)
+        logger = logging.getLogger(__name__)
+        logger.info("Génération PDF avec ReportLab (fallback)")
         
-        if pdf.err:
-            raise Exception(f"Erreur lors de la génération du PDF: {pdf.err}")
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm,
+                                topMargin=2*cm, bottomMargin=2*cm)
         
-        return result.getvalue()
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=colors.HexColor('#4472C4'),
+            spaceAfter=12,
+            alignment=TA_CENTER
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#4472C4'),
+            spaceAfter=6,
+            spaceBefore=12
+        )
+        
+        normal_style = styles['Normal']
+        
+        # Contenu
+        story = []
+        
+        # Titre
+        story.append(Paragraph(self.title or "Rapport de Présence", title_style))
+        if self.subtitle:
+            story.append(Paragraph(self.subtitle, normal_style))
+        story.append(Spacer(1, 0.5*cm))
+        
+        # Informations de base
+        context = self.context
+        if 'report_date' in context:
+            date_str = context['report_date'].strftime('%d/%m/%Y')
+            story.append(Paragraph(f"<b>Date :</b> {date_str}", normal_style))
+        
+        if 'attendances' in context:
+            count = len(context['attendances'])
+            story.append(Paragraph(f"<b>Nombre d'employés :</b> {count}", normal_style))
+        
+        story.append(Spacer(1, 0.5*cm))
+        
+        # Résumé statistique
+        if 'summary' in context:
+            summary = context['summary']
+            story.append(Paragraph("Résumé", heading_style))
+            
+            summary_data = [
+                ['Présents', 'Retards', 'Absents', 'Excusés'],
+                [str(summary.get('present', 0)), str(summary.get('late', 0)), 
+                 str(summary.get('absent', 0)), str(summary.get('excused', 0))]
+            ]
+            
+            summary_table = Table(summary_data, colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 1), (-1, -1), 14),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica-Bold'),
+            ]))
+            
+            story.append(summary_table)
+            story.append(Spacer(1, 0.5*cm))
+        
+        # Tableau des détails
+        if 'attendances' in context and context['attendances']:
+            story.append(Paragraph("Détails de Présence", heading_style))
+            
+            table_data = [['N°', 'Employé', 'Département', 'Arrivée', 'Départ', 'Statut']]
+            
+            for idx, att in enumerate(context['attendances'], 1):
+                employee_name = att.employee.user.get_full_name() if hasattr(att, 'employee') else 'N/A'
+                dept = getattr(att.employee, 'department', '-') if hasattr(att, 'employee') else '-'
+                check_in = att.check_in.strftime('%H:%M') if hasattr(att, 'check_in') and att.check_in else '-'
+                check_out = att.check_out.strftime('%H:%M') if hasattr(att, 'check_out') and att.check_out else '-'
+                status = att.get_status_display() if hasattr(att, 'get_status_display') else str(getattr(att, 'status', '-'))
+                
+                table_data.append([
+                    str(idx),
+                    employee_name,
+                    dept or '-',
+                    check_in,
+                    check_out,
+                    status
+                ])
+            
+            details_table = Table(table_data, colWidths=[1*cm, 5*cm, 3*cm, 2*cm, 2*cm, 3*cm])
+            details_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4472C4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.lightgrey]),
+            ]))
+            
+            story.append(details_table)
+        else:
+            story.append(Paragraph("Aucune donnée de présence pour cette période.", normal_style))
+        
+        # Pied de page
+        story.append(Spacer(1, 1*cm))
+        if self.company:
+            story.append(Paragraph(f"<i>{self.company.name}</i>", normal_style))
+        
+        current_date = timezone.now().strftime('%d/%m/%Y à %H:%M')
+        story.append(Paragraph(f"<i>Document généré le {current_date}</i>", normal_style))
+        
+        # Générer le PDF
+        doc.build(story)
+        pdf_content = buffer.getvalue()
+        buffer.close()
+        
+        logger.info(f"PDF généré avec succès (ReportLab), taille: {len(pdf_content)} bytes")
+        return pdf_content
 
 
 class AdvancedExcelExporter(BaseExporter):

@@ -1,0 +1,137 @@
+{% extends "exports/pdf/base_simple.html" %}
+
+{% block content %}
+<!-- En-tête avec période -->
+<div style="text-align: center; margin-bottom: 30px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};">
+    <h2 style="margin: 0; color: {{ branding.primary_color|default:'#4472C4' }};">
+        Historique de Paie
+    </h2>
+    <p style="margin: 5px 0 0 0; color: #666;">
+        {{ employee.user.get_full_name }} - {{ period }}
+    </p>
+</div>
+
+<!-- Résumé financier -->
+<div style="margin: 20px 0;">
+    <table style="width: 100%; border: none;">
+        <tr>
+            <td style="width: 48%; border: none; padding: 5px;">
+                <div style="padding: 20px; background-color: #e8f5e9; border-radius: 5px; border-left: 4px solid {{ branding.secondary_color|default:'#2e7d32' }};">
+                    <div style="font-size: 12pt; color: #666; margin-bottom: 5px;">Total Payé</div>
+                    <div style="font-size: 28pt; font-weight: bold; color: {{ branding.secondary_color|default:'#2e7d32' }};">
+                        {{ total_paid|floatformat:2 }} €
+                    </div>
+                </div>
+            </td>
+            <td style="width: 4%; border: none;"></td>
+            <td style="width: 48%; border: none; padding: 5px;">
+                <div style="padding: 20px; background-color: #fff3e0; border-radius: 5px; border-left: 4px solid {{ branding.accent_color|default:'#ed6c02' }};">
+                    <div style="font-size: 12pt; color: #666; margin-bottom: 5px;">En Attente</div>
+                    <div style="font-size: 28pt; font-weight: bold; color: {{ branding.accent_color|default:'#ed6c02' }};">
+                        {{ total_pending|floatformat:2 }} €
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<!-- Tableau des paies -->
+{% if payrolls %}
+<h3 style="margin-top: 30px; color: {{ branding.primary_color|default:'#4472C4' }};">Détail des Paies</h3>
+
+<table>
+    <thead style="background-color: {{ branding.primary_color|default:'#4472C4' }};">
+        <tr>
+            <th style="width: 12%;">Période</th>
+            <th style="width: 18%; text-align: right;">Salaire Base</th>
+            <th style="width: 15%; text-align: right;">Primes</th>
+            <th style="width: 15%; text-align: right;">Déductions</th>
+            <th style="width: 20%; text-align: right;">Net</th>
+            <th style="width: 10%; text-align: center;">Payé</th>
+            <th style="width: 10%;">Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for payroll in payrolls %}
+        <tr>
+            <td><strong>{{ payroll.month|stringformat:"02d" }}/{{ payroll.year }}</strong></td>
+            <td style="text-align: right;">{{ payroll.basic_salary|floatformat:2 }}</td>
+            <td style="text-align: right; color: {{ branding.secondary_color|default:'#2e7d32' }};">
+                +{{ payroll.bonus|floatformat:2 }}
+            </td>
+            <td style="text-align: right; color: #d32f2f;">
+                -{{ payroll.deductions|floatformat:2 }}
+            </td>
+            <td style="text-align: right; font-weight: bold; font-size: 11pt;">
+                {{ payroll.net_salary|floatformat:2 }} €
+            </td>
+            <td style="text-align: center;">
+                {% if payroll.is_paid %}
+                    <span style="color: {{ branding.secondary_color|default:'#2e7d32' }}; font-size: 14pt;">✓</span>
+                {% else %}
+                    <span style="color: {{ branding.accent_color|default:'#ed6c02' }}; font-size: 14pt;">⧗</span>
+                {% endif %}
+            </td>
+            <td style="font-size: 9pt;">
+                {{ payroll.payment_date|date:"d/m/Y"|default:"-" }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr style="background-color: #f8f9fa; font-weight: bold;">
+            <td colspan="4" style="text-align: right; padding: 12px;">TOTAL:</td>
+            <td style="text-align: right; font-size: 12pt; color: {{ branding.primary_color|default:'#4472C4' }};">
+                {% widthratio total_paid 1 1 %} €
+            </td>
+            <td colspan="2"></td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Informations complémentaires -->
+<div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};">
+    <h4 style="margin: 0 0 10px 0; color: {{ branding.primary_color|default:'#4472C4' }};">Informations</h4>
+    <p style="margin: 5px 0; font-size: 10pt;">
+        <strong>Nombre de bulletins:</strong> {{ payrolls.count }}
+    </p>
+    <p style="margin: 5px 0; font-size: 10pt;">
+        <strong>Salaire moyen:</strong> 
+        {% if payrolls %}
+            {% widthratio total_paid payrolls.count 1 %} €
+        {% else %}
+            0 €
+        {% endif %}
+    </p>
+</div>
+{% else %}
+<div style="text-align: center; padding: 40px; color: #999;">
+    <p>Aucun bulletin de paie pour cette période.</p>
+</div>
+{% endif %}
+
+<!-- Note de confidentialité -->
+<div style="margin-top: 40px; padding: 15px; background-color: #fff3cd; border-left: 4px solid {{ branding.accent_color|default:'#ed6c02' }};">
+    <p style="margin: 0; font-size: 9pt; color: #856404;">
+        <strong>⚠ Document Confidentiel</strong><br>
+        Ce document contient des informations salariales confidentielles. 
+        Il ne doit pas être communiqué à des tiers sans autorisation.
+    </p>
+</div>
+
+<!-- Signature -->
+{% if branding.signature_name %}
+<div class="signature-section" style="margin-top: 60px;">
+    <div class="signature-box" style="float: right; width: 45%;">
+        <p><strong>{{ branding.signature_title|default:"Responsable RH" }}</strong></p>
+        <div class="signature-line">
+            {{ branding.signature_name }}<br>
+            Date : {{ current_date|date:"d/m/Y" }}<br>
+            Signature et cachet
+        </div>
+    </div>
+    <div style="clear: both;"></div>
+</div>
+{% endif %}
+{% endblock %}

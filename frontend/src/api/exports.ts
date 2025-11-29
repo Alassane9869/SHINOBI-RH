@@ -15,32 +15,49 @@ const downloadFile = async (url: string, filename: string, params?: ExportParams
     try {
         const response = await axiosClient.get(url, {
             params,
-            responseType: 'blob', // Important pour les fichiers
+            responseType: 'blob',
         });
 
-        // Créer un lien de téléchargement
-        const blob = new Blob([response.data]);
+        // Créer un blob avec le bon type MIME
+        const contentType = response.headers['content-type'] || 'application/octet-stream';
+        const blob = new Blob([response.data], { type: contentType });
         const downloadUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = downloadUrl;
 
         // Extraire le nom du fichier depuis les headers si disponible
         const contentDisposition = response.headers['content-disposition'];
+        let finalFilename = filename;
+
         if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-            if (filenameMatch && filenameMatch[1]) {
-                filename = filenameMatch[1];
+            // Essayer plusieurs patterns pour extraire le filename
+            const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+            const matches = filenameRegex.exec(contentDisposition);
+            if (matches && matches[1]) {
+                finalFilename = matches[1].replace(/['"]/g, '');
             }
         }
 
-        link.setAttribute('download', filename);
+        // S'assurer que le filename a la bonne extension basée sur le content-type
+        if (!finalFilename.includes('.')) {
+            if (contentType.includes('pdf')) {
+                finalFilename += '.pdf';
+            } else if (contentType.includes('excel') || contentType.includes('spreadsheet')) {
+                finalFilename += '.xlsx';
+            } else if (contentType.includes('csv')) {
+                finalFilename += '.csv';
+            }
+        }
+
+        link.setAttribute('download', finalFilename);
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Export error:', error);
-        throw error;
+        const errorMessage = error.response?.data?.detail || error.message || 'Erreur lors du téléchargement';
+        throw new Error(errorMessage);
     }
 };
 
@@ -87,23 +104,24 @@ export const exportCNSSCertificate = async (payrollId: string): Promise<void> =>
 // ============= EMPLOYEE EXPORTS =============
 
 export const exportEmployeesList = async (format: 'excel' | 'csv' = 'excel', department?: string): Promise<void> => {
+    const endpoint = format === 'excel' ? '/api/employees/export/excel/' : '/api/employees/export/csv/';
     await downloadFile(
-        `/employees/export/list-advanced/`,
+        endpoint,
         `liste_employes.${format === 'excel' ? 'xlsx' : 'csv'}`,
-        { format, department }
+        { department }
     );
 };
 
 export const exportEmployeeCompleteFile = async (employeeId: string): Promise<void> => {
     await downloadFile(
-        `/employees/${employeeId}/export/complete-file/`,
+        `/api/employees/${employeeId}/export/complete-file/`,
         `dossier_employe_${employeeId}.pdf`
     );
 };
 
 export const exportWorkCertificate = async (employeeId: string): Promise<void> => {
     await downloadFile(
-        `/employees/${employeeId}/export/work-certificate-advanced/`,
+        `/api/employees/${employeeId}/export/work-certificate-advanced/`,
         `attestation_travail_${employeeId}.pdf`
     );
 };
@@ -119,7 +137,7 @@ export const exportTransferLetter = async (
     }
 ): Promise<void> => {
     await downloadFile(
-        `/employees/${employeeId}/export/transfer-letter-advanced/`,
+        `/api/employees/${employeeId}/export/transfer-letter-advanced/`,
         `lettre_mutation_${employeeId}.pdf`,
         params
     );
@@ -135,7 +153,7 @@ export const exportTerminationLetter = async (
     }
 ): Promise<void> => {
     await downloadFile(
-        `/employees/${employeeId}/export/termination-letter-advanced/`,
+        `/api/employees/${employeeId}/export/termination-letter-advanced/`,
         `lettre_fin_contrat_${employeeId}.pdf`,
         params
     );
@@ -152,7 +170,7 @@ export const exportWorkContract = async (
     }
 ): Promise<void> => {
     await downloadFile(
-        `/employees/${employeeId}/export/work-contract-advanced/`,
+        `/api/employees/${employeeId}/export/work-contract-advanced/`,
         `contrat_travail_${employeeId}.pdf`,
         params
     );
@@ -165,7 +183,7 @@ export const exportDailyAttendance = async (
     format: 'pdf' | 'excel' | 'csv' = 'pdf'
 ): Promise<void> => {
     await downloadFile(
-        `/attendance/export/daily-advanced/`,
+        `/api/attendance/export/daily-advanced/`,
         `presence_quotidienne_${date}.${format === 'excel' ? 'xlsx' : format === 'csv' ? 'csv' : 'pdf'}`,
         { date, format }
     );

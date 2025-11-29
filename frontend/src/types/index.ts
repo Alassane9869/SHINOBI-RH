@@ -10,7 +10,7 @@ export interface User {
 }
 
 export interface Employee {
-    id: number;
+    id: number | string;
     user: User;
     company: number;
     photo?: string;
@@ -51,7 +51,7 @@ export interface Payroll {
     employee_name?: string;
     month: number;
     year: number;
-    base_salary: number;
+    basic_salary: number;
     bonus?: number;
     deductions?: number;
     net_salary: number;
@@ -84,6 +84,8 @@ export interface DashboardStats {
     total_payrolls: number;
     total_leaves: number;
     total_documents: number;
+    payroll_mass: number;
+    chart_data: { name: string; value: number }[];
 }
 
 // Types pour les formulaires
