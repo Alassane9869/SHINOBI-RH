@@ -63,7 +63,7 @@ const Sidebar: React.FC = () => {
 
             {/* Logo */}
             <div className="relative z-10 h-20 flex items-center px-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md">
-                <Link to="/dashboard" className="flex items-center gap-3 group">
+                <Link to={user?.role === 'owner' ? '/saas' : '/dashboard'} className="flex items-center gap-3 group">
                     <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
                         <div className="relative w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-500 rounded-xl flex items-center justify-center shadow-glow group-hover:shadow-glow-accent transition-all duration-300 group-hover:scale-110">
