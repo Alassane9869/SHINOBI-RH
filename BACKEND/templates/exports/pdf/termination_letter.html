@@ -1,0 +1,164 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 22pt; color: #4472C4;">LETTRE DE FIN DE CONTRAT</h1>
+</div>
+
+<!-- En-tête lettre -->
+<div style="margin: 30px 0; text-align: right;">
+    <p>
+        <strong>{{ company.name }}</strong><br>
+        {{ company.address }}<br>
+        {{ company.email }}<br>
+        {{ company.phone }}
+    </p>
+    <p style="margin-top: 20px;">
+        Le {{ current_date|date:"d/m/Y" }}
+    </p>
+</div>
+
+<!-- Destinataire -->
+<div style="margin: 30px 0;">
+    <p>
+        À l'attention de :<br>
+        <strong>{{ employee.user.get_full_name }}</strong><br>
+        {{ employee.address|default:"" }}
+    </p>
+</div>
+
+<!-- Objet -->
+<div style="margin: 30px 0;">
+    <p><strong>Objet : Notification de fin de contrat de travail</strong></p>
+</div>
+
+<!-- Corps de la lettre -->
+<div style="margin: 40px 0; text-align: justify; line-height: 2;">
+    <p>Madame, Monsieur,</p>
+    
+    <p>
+        Par la présente, nous avons l'honneur de vous informer que votre contrat de travail 
+        {% if termination_type == 'resignation' %}
+        prendra fin à votre demande
+        {% elif termination_type == 'dismissal' %}
+        est résilié par la direction
+        {% elif termination_type == 'end_of_contract' %}
+        arrivera à son terme
+        {% elif termination_type == 'mutual_agreement' %}
+        prend fin d'un commun accord
+        {% else %}
+        prendra fin
+        {% endif %}
+        le <strong>{{ end_date|date:"d/m/Y" }}</strong>.
+    </p>
+    
+    <div class="info-section" style="margin: 30px 0;">
+        <h3>Informations sur votre contrat</h3>
+        <div class="info-row">
+            <span class="info-label">Type de contrat :</span>
+            <span class="info-value">{{ contract_type|default:"CDI" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Date d'embauche :</span>
+            <span class="info-value">{{ employee.date_hired|date:"d/m/Y" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Poste occupé :</span>
+            <span class="info-value">{{ employee.position }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Ancienneté :</span>
+            <span class="info-value">{{ years_of_service }} an(s)</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Date de fin :</span>
+            <span class="info-value" style="font-weight: bold; color: #d32f2f;">{{ end_date|date:"d/m/Y" }}</span>
+        </div>
+    </div>
+    
+    {% if notice_period %}
+    <p>
+        Conformément à votre contrat de travail et aux dispositions légales en vigueur, 
+        vous êtes tenu(e) de respecter un préavis de <strong>{{ notice_period }} jours</strong>.
+        {% if notice_end_date %}
+        Votre dernier jour de travail effectif sera donc le <strong>{{ notice_end_date|date:"d/m/Y" }}</strong>.
+        {% endif %}
+    </p>
+    {% endif %}
+    
+    {% if termination_reason %}
+    <div class="alert alert-info" style="margin: 20px 0;">
+        <strong>Motif :</strong> {{ termination_reason }}
+    </div>
+    {% endif %}
+    
+    <h3 style="margin-top: 30px;">Formalités de départ</h3>
+    
+    <p>Nous vous rappelons les formalités suivantes à accomplir avant votre départ :</p>
+    
+    <ul style="line-height: 1.8;">
+        <li>Restitution de tout matériel de l'entreprise (badge, clés, ordinateur, téléphone, etc.)</li>
+        <li>Passation de vos dossiers en cours avec votre responsable</li>
+        <li>Restitution des documents confidentiels</li>
+        {% if additional_formalities %}
+        {{ additional_formalities|safe }}
+        {% endif %}
+    </ul>
+    
+    <h3 style="margin-top: 30px;">Documents remis</h3>
+    
+    <p>Les documents suivants vous seront remis à votre départ :</p>
+    
+    <ul style="line-height: 1.8;">
+        <li>Certificat de travail</li>
+        <li>Solde de tout compte</li>
+        <li>Attestation Pôle Emploi / CNSS</li>
+        <li>Dernière fiche de paie</li>
+        {% if severance_pay %}
+        <li>Indemnité de licenciement : <strong>{{ severance_pay|floatformat:2 }} €</strong></li>
+        {% endif %}
+    </ul>
+    
+    {% if final_message %}
+    <p style="margin-top: 30px;">{{ final_message }}</p>
+    {% else %}
+    <p style="margin-top: 30px;">
+        Nous vous remercions pour les services rendus durant votre présence au sein de notre entreprise 
+        et vous souhaitons plein succès dans vos projets futurs.
+    </p>
+    {% endif %}
+    
+    <p>
+        Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
+    </p>
+</div>
+
+<!-- Mentions légales -->
+<div class="alert alert-warning" style="margin-top: 30px;">
+    <strong>Important :</strong> Cette lettre constitue une notification officielle de fin de contrat. 
+    Elle doit être conservée précieusement pour vos démarches administratives futures.
+</div>
+
+<!-- Signatures -->
+<div class="signature-section" style="margin-top: 60px; page-break-inside: avoid;">
+    <div style="display: flex; justify-content: space-between;">
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>Pour l'entreprise</strong></p>
+            <div class="signature-line">
+                {{ company.name }}<br>
+                Le Directeur / Responsable RH<br><br><br>
+                Signature et cachet
+            </div>
+        </div>
+        
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>Pris connaissance</strong></p>
+            <div class="signature-line">
+                {{ employee.user.get_full_name }}<br>
+                Le {{ current_date|date:"d/m/Y" }}<br><br><br>
+                Signature
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

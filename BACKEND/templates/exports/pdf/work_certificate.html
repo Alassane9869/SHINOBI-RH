@@ -1,0 +1,89 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 22pt; color: #4472C4;">ATTESTATION DE TRAVAIL</h1>
+</div>
+
+<div style="margin: 40px 0; text-align: justify; line-height: 2;">
+    <p>
+        Je soussigné(e), <strong>{{ company.name }}</strong>, représenté(e) par son responsable des ressources humaines,
+        certifie que :
+    </p>
+    
+    <div class="info-section" style="margin: 30px 0;">
+        <div class="info-row">
+            <span class="info-label">Nom et Prénom :</span>
+            <span class="info-value" style="font-weight: bold;">{{ employee.user.get_full_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Né(e) le :</span>
+            <span class="info-value">{{ employee.birth_date|date:"d/m/Y"|default:"Non renseigné" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">À :</span>
+            <span class="info-value">{{ employee.birth_place|default:"Non renseigné" }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Demeurant à :</span>
+            <span class="info-value">{{ employee.address|default:"Non renseigné" }}</span>
+        </div>
+    </div>
+    
+    <p>
+        Est employé(e) au sein de notre entreprise en qualité de <strong>{{ employee.position }}</strong>
+        {% if employee.department %}au département <strong>{{ employee.department }}</strong>{% endif %}
+        depuis le <strong>{{ employee.date_hired|date:"d/m/Y" }}</strong>.
+    </p>
+    
+    <p>
+        L'intéressé(e) exerce ses fonctions à temps complet et perçoit une rémunération mensuelle brute
+        de <strong>{{ employee.base_salary|floatformat:2 }} €</strong>.
+    </p>
+    
+    <p>
+        Cette attestation est délivrée à l'intéressé(e) pour servir et valoir ce que de droit.
+    </p>
+</div>
+
+<!-- Informations entreprise -->
+<div class="info-section" style="margin: 40px 0;">
+    <h3>Informations Entreprise</h3>
+    <div class="info-row">
+        <span class="info-label">Raison sociale :</span>
+        <span class="info-value">{{ company.name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Adresse :</span>
+        <span class="info-value">{{ company.address }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Email :</span>
+        <span class="info-value">{{ company.email }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Téléphone :</span>
+        <span class="info-value">{{ company.phone }}</span>
+    </div>
+</div>
+
+<!-- Mention légale -->
+<div class="alert alert-info" style="margin: 40px 0;">
+    <strong>Mention légale :</strong> Cette attestation est délivrée en un seul exemplaire
+    pour servir et valoir ce que de droit. Elle ne peut être utilisée à des fins autres
+    que celles pour lesquelles elle a été établie.
+</div>
+
+<!-- Signature -->
+<div class="signature-section" style="margin-top: 80px;">
+    <div class="signature-box" style="width: 100%; text-align: right;">
+        <p>Fait à ____________, le {{ current_date|date:"d/m/Y" }}</p>
+        <br><br>
+        <div class="signature-line" style="margin-left: auto; margin-right: 0; width: 300px;">
+            <strong>{{ company.name }}</strong><br>
+            Le Responsable des Ressources Humaines<br><br><br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

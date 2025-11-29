@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'apps.leaves',
     'apps.payroll',
     'apps.documents',
+    'apps.dashboard',
 ]
 
 MIDDLEWARE = [
@@ -149,6 +150,7 @@ SIMPLE_JWT = {
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True  # For development
+CORS_EXPOSE_HEADERS = ['Content-Disposition']
 
 # Cloudinary
 import cloudinary
@@ -168,3 +170,68 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+# ============================================================================
+# CONFIGURATION CELERY
+# ============================================================================
+
+# URL du broker Redis pour Celery
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
+
+# URL du backend de résultats
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+# Format de sérialisation accepté
+CELERY_ACCEPT_CONTENT = ['json']
+
+# Format de sérialisation des tâches
+CELERY_TASK_SERIALIZER = 'json'
+
+# Format de sérialisation des résultats
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Fuseau horaire pour Celery
+CELERY_TIMEZONE = TIME_ZONE
+
+# Expiration des résultats (24 heures)
+CELERY_RESULT_EXPIRES = 86400
+
+# Configuration des tâches
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max par tâche
+
+# ============================================================================
+# CONFIGURATION EXPORTS
+# ============================================================================
+
+# Dossier de stockage des fichiers exportés
+EXPORT_STORAGE_PATH = MEDIA_ROOT / 'exports'
+
+# Durée de validité des URLs d'export (en heures)
+EXPORT_URL_EXPIRATION_HOURS = 24
+
+# Taille max des fichiers d'export (en MB)
+EXPORT_MAX_FILE_SIZE_MB = 100
+
+# Template de base pour les PDFs
+EXPORT_PDF_BASE_TEMPLATE = 'exports/pdf/base.html'
+
+# Polices par défaut pour les PDFs
+EXPORT_PDF_FONTS = {
+    'primary': 'Inter',
+    'secondary': 'Roboto',
+}
+
+# URL de base pour la vérification des QR codes
+EXPORT_QR_VERIFICATION_BASE_URL = config(
+    'EXPORT_QR_VERIFICATION_BASE_URL',
+    default='https://grh.example.com/verify/'
+)
+
+# Activer/désactiver les signatures numériques
+EXPORT_ENABLE_DIGITAL_SIGNATURE = config('EXPORT_ENABLE_DIGITAL_SIGNATURE', default=False, cast=bool)
+
+# Chemin vers le certificat de signature (si activé)
+EXPORT_SIGNATURE_CERTIFICATE_PATH = config('EXPORT_SIGNATURE_CERTIFICATE_PATH', default='')
+EXPORT_SIGNATURE_PRIVATE_KEY_PATH = config('EXPORT_SIGNATURE_PRIVATE_KEY_PATH', default='')
+

@@ -5,6 +5,7 @@ import useAuthStore from '../auth/AuthStore';
 import { Building2, Mail, Phone, Globe, User, Shield, AtSign } from 'lucide-react';
 import { Company } from '../types';
 import { Input } from '../components/ui';
+import ExportMenu from '../components/ExportMenu';
 
 const Settings: React.FC = () => {
     const { user } = useAuthStore();
@@ -26,9 +27,12 @@ const Settings: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="page-title">Paramètres</h1>
-                <p className="page-subtitle">Gérez les informations de votre entreprise et votre profil</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="page-title">Paramètres</h1>
+                    <p className="page-subtitle">Gérez les informations de votre entreprise et votre profil</p>
+                </div>
+                <ExportMenu module="company" />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

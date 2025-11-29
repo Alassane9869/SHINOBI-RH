@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Helvetica', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .company-name { font-size: 18pt; font-weight: bold; color: #2c3e50; }
+        .title { font-size: 16pt; font-weight: bold; text-align: center; margin: 30px 0; text-decoration: underline; }
+        .content { margin: 20px 40px; text-align: justify; }
+        .signature { margin-top: 50px; text-align: right; margin-right: 40px; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10pt; color: #7f8c8d; border-top: 1px solid #bdc3c7; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div>{{ company.address }}</div>
+        <div>{{ company.phone }} | {{ company.email }}</div>
+    </div>
+
+    <div class="title">DÉCISION DE CONGÉ</div>
+
+    <div class="content">
+        <p>Fait à {{ company.city|default:"Bamako" }}, le {{ current_date|date:"d F Y" }}</p>
+        <br>
+        <p><strong>Objet : Réponse à votre demande de congé</strong></p>
+        <br>
+        <p>Monsieur/Madame <strong>{{ leave.employee.user.first_name }} {{ leave.employee.user.last_name }}</strong>,</p>
+        
+        <p>Nous avons bien reçu votre demande de congé pour la période du <strong>{{ leave.start_date|date:"d F Y" }}</strong> au <strong>{{ leave.end_date|date:"d F Y" }}</strong>.</p>
+        
+        {% if leave.status == 'approved' %}
+        <p>Nous avons le plaisir de vous informer que votre demande a été <strong>APPROUVÉE</strong>.</p>
+        <p>Nous vous souhaitons d'agréables congés.</p>
+        {% elif leave.status == 'rejected' %}
+        <p>Nous avons le regret de vous informer que votre demande a été <strong>REFUSÉE</strong> pour le motif suivant :</p>
+        <p><em>{{ leave.rejection_reason|default:"Nécessité de service" }}</em></p>
+        {% else %}
+        <p>Votre demande est actuellement <strong>EN ATTENTE DE VALIDATION</strong>.</p>
+        {% endif %}
+        
+        <p>Veuillez agréer, Monsieur/Madame, l'expression de nos salutations distinguées.</p>
+    </div>
+
+    <div class="signature">
+        <p>La Direction Générale</p>
+        <br><br><br>
+        <p>____________________</p>
+    </div>
+
+    <div class="footer">
+        {{ company.name }} - {{ company.address }} - {{ company.website }}
+    </div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Helvetica', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .company-name { font-size: 18pt; font-weight: bold; color: #2c3e50; }
+        .title { font-size: 16pt; font-weight: bold; text-align: center; margin: 30px 0; text-decoration: underline; }
+        .content { margin: 20px 40px; text-align: justify; }
+        .signature { margin-top: 50px; text-align: right; margin-right: 40px; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10pt; color: #7f8c8d; border-top: 1px solid #bdc3c7; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div>{{ company.address }}</div>
+        <div>{{ company.phone }} | {{ company.email }}</div>
+    </div>
+
+    <div class="title">NOTIFICATION DE FIN DE CONTRAT</div>
+
+    <div class="content">
+        <p>Fait à {{ company.city|default:"Bamako" }}, le {{ current_date|date:"d F Y" }}</p>
+        <br>
+        <p><strong>Objet : Fin de votre contrat de travail</strong></p>
+        <br>
+        <p>Monsieur/Madame <strong>{{ employee.user.first_name }} {{ employee.user.last_name }}</strong>,</p>
+        
+        <p>Nous vous informons par la présente que votre contrat de travail au sein de notre entreprise arrivera à son terme le <strong>{{ current_date|date:"d F Y" }}</strong>.</p>
+        
+        <p>À cette date, nous vous remettrons votre certificat de travail, votre reçu pour solde de tout compte ainsi que votre dernière fiche de paie.</p>
+        
+        <p>Nous tenons à vous remercier pour le travail accompli au sein de notre société et vous souhaitons une bonne continuation dans vos projets futurs.</p>
+        
+        <p>Veuillez agréer, Monsieur/Madame, l'expression de nos salutations distinguées.</p>
+    </div>
+
+    <div class="signature">
+        <p>La Direction Générale</p>
+        <br><br><br>
+        <p>____________________</p>
+    </div>
+
+    <div class="footer">
+        {{ company.name }} - {{ company.address }} - {{ company.website }}
+    </div>
+</body>
+</html>

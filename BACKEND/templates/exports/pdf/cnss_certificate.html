@@ -1,0 +1,219 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 22pt; color: #4472C4;">CERTIFICAT D'AFFILIATION</h1>
+    <h2 style="font-size: 16pt; color: #666; margin-top: 10px;">Sécurité Sociale (CNSS/INPS)</h2>
+</div>
+
+<!-- Informations Entreprise -->
+<div class="info-section">
+    <h2>Informations de l'Employeur</h2>
+    <div class="info-row">
+        <span class="info-label">Raison sociale :</span>
+        <span class="info-value">{{ company.name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Adresse :</span>
+        <span class="info-value">{{ company.address }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Numéro d'affiliation CNSS/INPS :</span>
+        <span class="info-value" style="font-weight: bold;">{{ company_cnss_number|default:"À RENSEIGNER" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Code employeur :</span>
+        <span class="info-value">{{ company_employer_code|default:"À RENSEIGNER" }}</span>
+    </div>
+</div>
+
+<!-- Informations Employé -->
+<div class="info-section">
+    <h2>Informations du Salarié</h2>
+    <div class="info-row">
+        <span class="info-label">Nom et Prénom :</span>
+        <span class="info-value" style="font-weight: bold;">{{ employee.user.get_full_name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date de naissance :</span>
+        <span class="info-value">{{ employee.birth_date|date:"d/m/Y"|default:"Non renseignée" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Numéro de sécurité sociale :</span>
+        <span class="info-value" style="font-weight: bold;">{{ employee_ss_number|default:"À RENSEIGNER" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Matricule employé :</span>
+        <span class="info-value">{{ employee.id|truncatechars:12 }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Fonction :</span>
+        <span class="info-value">{{ employee.position }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date d'embauche :</span>
+        <span class="info-value">{{ employee.date_hired|date:"d/m/Y"|default:"Non renseignée" }}</span>
+    </div>
+</div>
+
+<!-- Période de Cotisation -->
+<div class="info-section">
+    <h2>Période de Référence</h2>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value" style="font-weight: bold;">
+            {% if period_start and period_end %}
+                Du {{ period_start|date:"d/m/Y" }} au {{ period_end|date:"d/m/Y" }}
+            {% elif month and year %}
+                {{ month_name }} {{ year }}
+            {% else %}
+                Année {{ current_date|date:"Y" }}
+            {% endif %}
+        </span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Nombre de jours travaillés :</span>
+        <span class="info-value">{{ days_worked|default:"À calculer" }}</span>
+    </div>
+</div>
+
+<!-- Détails des Cotisations -->
+<h2>Détails des Cotisations Sociales</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 50%;">Type de Cotisation</th>
+            <th style="width: 20%; text-align: right;">Base (€)</th>
+            <th style="width: 15%; text-align: center;">Taux</th>
+            <th style="width: 15%; text-align: right;">Montant (€)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Salaire brut -->
+        <tr style="background-color: #f8f9fa;">
+            <td colspan="2"><strong>Salaire brut de référence</strong></td>
+            <td style="text-align: center;">-</td>
+            <td style="text-align: right; font-weight: bold;">{{ gross_salary|floatformat:2 }}</td>
+        </tr>
+        
+        <!-- Part Employeur -->
+        <tr>
+            <td colspan="4" style="background-color: #e7f0ff; font-weight: bold; padding: 8px;">
+                COTISATIONS PATRONALES
+            </td>
+        </tr>
+        
+        <tr>
+            <td>Assurance maladie (part employeur)</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employer.health|default:"12.80" }}%</td>
+            <td style="text-align: right;">{{ contributions.employer.health|floatformat:2 }}</td>
+        </tr>
+        
+        <tr>
+            <td>Retraite (part employeur)</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employer.pension|default:"8.55" }}%</td>
+            <td style="text-align: right;">{{ contributions.employer.pension|floatformat:2 }}</td>
+        </tr>
+        
+        <tr>
+            <td>Allocations familiales</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employer.family|default:"5.25" }}%</td>
+            <td style="text-align: right;">{{ contributions.employer.family|floatformat:2 }}</td>
+        </tr>
+        
+        <tr>
+            <td>Accident du travail</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employer.accident|default:"1.00" }}%</td>
+            <td style="text-align: right;">{{ contributions.employer.accident|floatformat:2 }}</td>
+        </tr>
+        
+        <tr style="font-weight: bold; background-color: #e7f0ff;">
+            <td colspan="3" style="text-align: right;">TOTAL PART EMPLOYEUR</td>
+            <td style="text-align: right;">{{ total_employer|floatformat:2 }}</td>
+        </tr>
+        
+        <!-- Part Salarié -->
+        <tr>
+            <td colspan="4" style="background-color: #fff3cd; font-weight: bold; padding: 8px;">
+                COTISATIONS SALARIALES
+            </td>
+        </tr>
+        
+        <tr>
+            <td>Assurance maladie (part salarié)</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employee.health|default:"0.75" }}%</td>
+            <td style="text-align: right;">{{ contributions.employee.health|floatformat:2 }}</td>
+        </tr>
+        
+        <tr>
+            <td>Retraite (part salarié)</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+            <td style="text-align: center;">{{ rates.employee.pension|default:"6.90" }}%</td>
+            <td style="text-align: right;">{{ contributions.employee.pension|floatformat:2 }}</td>
+        </tr>
+        
+        <tr style="font-weight: bold; background-color: #fff3cd;">
+            <td colspan="3" style="text-align: right;">TOTAL PART SALARIÉ</td>
+            <td style="text-align: right; color: #d32f2f;">{{ total_employee|floatformat:2 }}</td>
+        </tr>
+        
+        <!-- Total Global -->
+        <tr class="table-total">
+            <td colspan="3" style="font-size: 14pt; text-align: right;">TOTAL DES COTISATIONS</td>
+            <td style="text-align: right; font-size: 14pt; font-weight: bold;">{{ total_contributions|floatformat:2 }} €</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Récapitulatif -->
+<div class="info-section" style="margin-top: 30px;">
+    <h3>Récapitulatif</h3>
+    <div class="info-row">
+        <span class="info-label">Salaire brut :</span>
+        <span class="info-value">{{ gross_salary|floatformat:2 }} €</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Cotisations salariales :</span>
+        <span class="info-value" style="color: #d32f2f;">-{{ total_employee|floatformat:2 }} €</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Salaire net après cotisations sociales :</span>
+        <span class="info-value" style="font-weight: bold; color: #2e7d32;">{{ net_after_contributions|floatformat:2 }} €</span>
+    </div>
+</div>
+
+<!-- Déclaration -->
+<div style="margin: 40px 0; text-align: justify; line-height: 2;">
+    <p>
+        Je certifie que le salarié susmentionné est bien affilié au régime de sécurité sociale 
+        (CNSS/INPS) et que les cotisations correspondantes ont été déclarées et versées conformément 
+        à la réglementation en vigueur.
+    </p>
+</div>
+
+<!-- Mentions Légales -->
+<div class="alert alert-info">
+    <strong>Information importante :</strong> Ce document certifie l'affiliation et les cotisations 
+    déclarées pour la période indiquée. En cas de besoin de vérification, contacter directement 
+    l'organisme de sécurité sociale avec le numéro d'affiliation mentionné ci-dessus.
+</div>
+
+<!-- Signature -->
+<div class="signature-section" style="margin-top: 60px; page-break-inside: avoid;">
+    <div class="signature-box" style="width: 100%; text-align: right;">
+        <p>Fait à ____________, le {{ current_date|date:"d/m/Y" }}</p>
+        <br><br>
+        <div class="signature-line" style="margin-left: auto; margin-right: 0; width: 300px;">
+            <strong>{{ company.name }}</strong><br>
+            Le Directeur / Responsable RH<br><br><br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

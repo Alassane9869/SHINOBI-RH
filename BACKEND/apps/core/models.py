@@ -8,3 +8,7 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+# Importer les modèles d'export
+from .export_models import ExportLog, ExportTemplate
+

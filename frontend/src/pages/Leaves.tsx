@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
 import DataTable, { DataTableColumn } from '../components/DataTable';
 import ModalForm from '../components/ModalForm';
+import ExportMenu from '../components/ExportMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Plus, Check, X, Calendar, FileText, AlertCircle, User as UserIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -89,6 +90,34 @@ const Leaves: React.FC = () => {
             toast.error(error.response?.data?.detail || 'Erreur');
         }
     });
+
+    const downloadDocument = async (id: number, type: 'request' | 'decision') => {
+        try {
+            const endpoint = `/api/leaves/${id}/export/${type}/`;
+            const response = await axiosClient.get(endpoint, {
+                responseType: 'blob'
+            });
+
+            if (response.data.type === 'application/json') {
+                const text = await response.data.text();
+                const error = JSON.parse(text);
+                throw new Error(error.detail || 'Erreur lors du téléchargement');
+            }
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${type}_conge_${id}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success('Document téléchargé');
+        } catch (error: any) {
+            console.error('Download error:', error);
+            toast.error(error.message || 'Erreur lors du téléchargement');
+        }
+    };
 
     const canApprove = user?.role ? ['admin', 'rh', 'manager'].includes(user.role) : false;
 
@@ -185,9 +214,12 @@ const Leaves: React.FC = () => {
                     <h1 className="page-title">Congés</h1>
                     <p className="page-subtitle">Gérez les demandes de congés et absences</p>
                 </div>
-                <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-                    Nouvelle demande
-                </Button>
+                <div className="flex gap-3">
+                    <ExportMenu module="leaves" />
+                    <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+                        Nouvelle demande
+                    </Button>
+                </div>
             </div>
 
             <div className="card space-y-4">
@@ -234,6 +266,19 @@ const Leaves: React.FC = () => {
                     columns={columns}
                     data={filteredLeaves}
                     isLoading={isLoading}
+                    customActions={(row: Leave) => (
+                        <div className="dropdown dropdown-end">
+                            <div tabIndex={0} role="button" className="btn btn-ghost btn-xs">
+                                <FileText className="w-4 h-4" />
+                            </div>
+                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <li><a onClick={() => row.id && downloadDocument(row.id, 'request')}>Demande (PDF)</a></li>
+                                {row.status !== 'pending' && (
+                                    <li><a onClick={() => row.id && downloadDocument(row.id, 'decision')}>Décision (PDF)</a></li>
+                                )}
+                            </ul>
+                        </div>
+                    )}
                 />
             </div>
 

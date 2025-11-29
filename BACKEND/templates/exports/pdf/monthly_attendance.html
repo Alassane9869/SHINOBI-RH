@@ -1,0 +1,194 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<!-- Informations du Rapport -->
+<div class="info-section">
+    <h2>Informations du Rapport</h2>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value">{{ month_name }} {{ year }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Nombre d'employés :</span>
+        <span class="info-value">{{ total_employees }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Jours ouvrés :</span>
+        <span class="info-value">{{ working_days }}</span>
+    </div>
+</div>
+
+<!-- Statistiques Globales -->
+<h2>Statistiques Globales</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Indicateur</th>
+            <th style="width: 25%; text-align: right;">Valeur</th>
+            <th style="width: 25%; text-align: right;">Pourcentage</th>
+            <th style="width: 25%;">Tendance</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Présences totales</strong></td>
+            <td style="text-align: right; color: #2e7d32; font-weight: bold;">{{ stats.total_present }}</td>
+            <td style="text-align: right;">{{ stats.present_rate|floatformat:1 }}%</td>
+            <td>
+                {% if stats.present_trend > 0 %}
+                    <span style="color: #2e7d32;">↗ {{ stats.present_trend|floatformat:1 }}%</span>
+                {% elif stats.present_trend < 0 %}
+                    <span style="color: #d32f2f;">↘ {{ stats.present_trend|floatformat:1 }}%</span>
+                {% else %}
+                    <span style="color: #666;">→ {{ stats.present_trend|floatformat:1 }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Retards</strong></td>
+            <td style="text-align: right; color: #ed6c02; font-weight: bold;">{{ stats.total_late }}</td>
+            <td style="text-align: right;">{{ stats.late_rate|floatformat:1 }}%</td>
+            <td>
+                {% if stats.late_trend > 0 %}
+                    <span style="color: #d32f2f;">↗ {{ stats.late_trend|floatformat:1 }}%</span>
+                {% elif stats.late_trend < 0 %}
+                    <span style="color: #2e7d32;">↘ {{ stats.late_trend|floatformat:1 }}%</span>
+                {% else %}
+                    <span style="color: #666;">→ {{ stats.late_trend|floatformat:1 }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Absences</strong></td>
+            <td style="text-align: right; color: #d32f2f; font-weight: bold;">{{ stats.total_absent }}</td>
+            <td style="text-align: right;">{{ stats.absent_rate|floatformat:1 }}%</td>
+            <td>
+                {% if stats.absent_trend > 0 %}
+                    <span style="color: #d32f2f;">↗ {{ stats.absent_trend|floatformat:1 }}%</span>
+                {% elif stats.absent_trend < 0 %}
+                    <span style="color: #2e7d32;">↘ {{ stats.absent_trend|floatformat:1 }}%</span>
+                {% else %}
+                    <span style="color: #666;">→ {{ stats.absent_trend|floatformat:1 }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Heures travaillées (total)</strong></td>
+            <td style="text-align: right; font-weight: bold;">{{ stats.total_hours|floatformat:0 }}h</td>
+            <td style="text-align: right;">-</td>
+            <td>-</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Récapitulatif par Employé -->
+<h2 style="margin-top: 40px;">Récapitulatif par Employé</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 5%;">N°</th>
+            <th style="width: 25%;">Employé</th>
+            <th style="width: 15%;">Département</th>
+            <th style="width: 10%; text-align: center;">Présent</th>
+            <th style="width: 10%; text-align: center;">Retards</th>
+            <th style="width: 10%; text-align: center;">Absences</th>
+            <th style="width: 10%; text-align: center;">Excusés</th>
+            <th style="width: 15%; text-align: right;">Taux Présence</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for employee_stat in employee_stats %}
+        {% if employee_stat.attendance_rate < 80 %}
+        <tr style="background-color: #fff3cd;">
+        {% else %}
+        <tr>
+        {% endif %}
+            <td style="text-align: center;">{{ forloop.counter }}</td>
+            <td>{{ employee_stat.employee_name }}</td>
+            <td>{{ employee_stat.department|default:"-" }}</td>
+            <td style="text-align: center; color: #2e7d32;">{{ employee_stat.present }}</td>
+            <td style="text-align: center; color: #ed6c02;">{{ employee_stat.late }}</td>
+            <td style="text-align: center; color: #d32f2f;">{{ employee_stat.absent }}</td>
+            <td style="text-align: center; color: #1976d2;">{{ employee_stat.excused }}</td>
+            <td style="text-align: right; font-weight: bold;">
+                {% if employee_stat.attendance_rate >= 95 %}
+                    <span style="color: #2e7d32;">{{ employee_stat.attendance_rate|floatformat:1 }}%</span>
+                {% elif employee_stat.attendance_rate >= 80 %}
+                    <span style="color: #ed6c02;">{{ employee_stat.attendance_rate|floatformat:1 }}%</span>
+                {% else %}
+                    <span style="color: #d32f2f;">{{ employee_stat.attendance_rate|floatformat:1 }}%</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Analyse par Département -->
+{% if department_stats %}
+<h2 style="margin-top: 40px;">Analyse par Département</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 40%;">Département</th>
+            <th style="width: 20%; text-align: center;">Effectif</th>
+            <th style="width: 20%; text-align: right;">Taux Présence</th>
+            <th style="width: 20%; text-align: right;">Taux Absence</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dept in department_stats %}
+        <tr>
+            <td><strong>{{ dept.name }}</strong></td>
+            <td style="text-align: center;">{{ dept.employee_count }}</td>
+            <td style="text-align: right; color: #2e7d32;">{{ dept.presence_rate|floatformat:1 }}%</td>
+            <td style="text-align: right; color: #d32f2f;">{{ dept.absence_rate|floatformat:1 }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Alertes -->
+{% if alerts %}
+<h2 style="margin-top: 40px; color: #d32f2f;">⚠️ Alertes</h2>
+
+<div class="alert alert-danger">
+    <ul style="margin: 0; padding-left: 20px;">
+        {% for alert in alerts %}
+        <li><strong>{{ alert.employee_name }}</strong> : {{ alert.message }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Recommandations -->
+<div class="alert alert-info" style="margin-top: 30px;">
+    <h3 style="margin-top: 0;">📋 Recommandations</h3>
+    <ul>
+        {% if stats.absent_rate > 10 %}
+        <li>Le taux d'absence ({{ stats.absent_rate|floatformat:1 }}%) est élevé. Envisager une analyse des causes.</li>
+        {% endif %}
+        {% if stats.late_rate > 15 %}
+        <li>Le taux de retards ({{ stats.late_rate|floatformat:1 }}%) nécessite une action corrective.</li>
+        {% endif %}
+        {% if stats.present_rate >= 95 %}
+        <li>Excellent taux de présence ({{ stats.present_rate|floatformat:1 }}%). Maintenir les bonnes pratiques.</li>
+        {% endif %}
+    </ul>
+</div>
+
+<!-- Signature -->
+<div class="signature-section" style="margin-top: 60px; page-break-inside: avoid;">
+    <div class="signature-box" style="width: 100%; text-align: right;">
+        <p><strong>Responsable RH / Chef de Département</strong></p>
+        <div class="signature-line" style="margin-left: auto; margin-right: 0; width: 300px;">
+            Date : {{ current_date|date:"d/m/Y" }}<br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,8 +4,9 @@ import axiosClient from '../api/axiosClient';
 import DataTable, { DataTableColumn } from '../components/DataTable';
 import ModalForm from '../components/ModalForm';
 import ConfirmDialog from '../components/ConfirmDialog';
-import ExportMenu from '../components/ExportMenu';
-import { Plus, User as UserIcon, Briefcase, Building2, DollarSign, MapPin, Phone, Calendar } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import exportService from '../api/exports';
+import { Plus, User as UserIcon, Briefcase, Building2, DollarSign, MapPin, Phone, Calendar, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -55,7 +56,7 @@ const Employees: React.FC = () => {
     const { data: availableUsers } = useQuery<User[]>({
         queryKey: ['available-users'],
         queryFn: async () => {
-            const response = await axiosClient.get('/api/users/without-employee/');
+            const response = await axiosClient.get('/api/auth/users/without-employee/');
             return response.data;
         },
         enabled: isModalOpen && !selectedEmployee,
@@ -153,20 +154,41 @@ const Employees: React.FC = () => {
         setIsDeleteDialogOpen(true);
     };
 
-    const downloadCertificate = async (id: number) => {
+    const downloadDocument = async (employee: Employee, type: 'sheet' | 'contract' | 'certificate' | 'transfer' | 'end-contract') => {
         try {
-            const response = await axiosClient.get(`/api/employees/${id}/work_certificate/`, {
-                responseType: 'blob'
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `attestation_${id}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            toast.error('Erreur lors du téléchargement');
+            const id = String(employee.id);
+            switch (type) {
+                case 'sheet':
+                    await exportService.exportEmployeeCompleteFile(id);
+                    break;
+                case 'contract':
+                    await exportService.exportWorkContract(id, {
+                        contract_type: 'CDI',
+                        start_date: employee.date_hired || new Date().toISOString().split('T')[0],
+                        salary: employee.base_salary ? Number(employee.base_salary) : undefined
+                    });
+                    break;
+                case 'certificate':
+                    await exportService.exportWorkCertificate(id);
+                    break;
+                case 'transfer':
+                    await exportService.exportTransferLetter(id, {
+                        new_position: employee.position,
+                        new_department: employee.department || '',
+                        effective_date: new Date().toISOString().split('T')[0]
+                    });
+                    break;
+                case 'end-contract':
+                    await exportService.exportTerminationLetter(id, {
+                        end_date: new Date().toISOString().split('T')[0],
+                        termination_type: 'end_of_contract'
+                    });
+                    break;
+            }
+            toast.success('Document téléchargé');
+        } catch (error: any) {
+            console.error('Download error:', error);
+            toast.error(error.message || 'Erreur lors du téléchargement');
         }
     };
 
@@ -213,7 +235,12 @@ const Employees: React.FC = () => {
                     <p className="page-subtitle">Gérez vos employés et leurs informations</p>
                 </div>
                 <div className="flex gap-3">
-                    <ExportMenu module="employees" />
+                    <ExportButton
+                        label="Liste des employés"
+                        formats={['excel', 'csv']}
+                        onExport={(format) => exportService.exportEmployeesList(format as 'excel' | 'csv', departmentFilter || undefined)}
+                        variant="outline"
+                    />
                     <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
                         Nouvel employé
                     </Button>
@@ -252,7 +279,23 @@ const Employees: React.FC = () => {
                     isLoading={isLoading}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
-                    onView={(row) => row.id && downloadCertificate(row.id)}
+                    onView={(row) => {
+                        if (row.id) downloadDocument(row, 'sheet');
+                    }}
+                    customActions={(row: Employee) => (
+                        <div className="dropdown dropdown-end">
+                            <div tabIndex={0} role="button" className="btn btn-ghost btn-xs">
+                                <FileText className="w-4 h-4" />
+                            </div>
+                            <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <li><a onClick={() => row.id && downloadDocument(row, 'sheet')}>Fiche Employé</a></li>
+                                <li><a onClick={() => row.id && downloadDocument(row, 'contract')}>Contrat</a></li>
+                                <li><a onClick={() => row.id && downloadDocument(row, 'certificate')}>Attestation</a></li>
+                                <li><a onClick={() => row.id && downloadDocument(row, 'transfer')}>Lettre Mutation</a></li>
+                                <li><a onClick={() => row.id && downloadDocument(row, 'end-contract')}>Fin Contrat</a></li>
+                            </ul>
+                        </div>
+                    )}
                 />
             </div>
 

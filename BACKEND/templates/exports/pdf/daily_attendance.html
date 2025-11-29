@@ -1,0 +1,149 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<!-- Informations du Rapport -->
+<div class="info-section">
+    <h2>Informations</h2>
+    <div class="info-row">
+        <span class="info-label">Date :</span>
+        <span class="info-value">{{ report_date|date:"d/m/Y" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Nombre d'employés :</span>
+        <span class="info-value">{{ attendances|length }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value">{{ report_date|date:"l d F Y" }}</span>
+    </div>
+</div>
+
+<!-- Résumé Statistique -->
+<div style="display: flex; justify-content: space-around; margin: 30px 0;">
+    <div class="info-section" style="width: 22%; text-align: center;">
+        <h3 style="color: #2e7d32;">Présents</h3>
+        <p style="font-size: 28pt; color: #2e7d32; font-weight: bold;">
+            {{ summary.present }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="width: 22%; text-align: center;">
+        <h3 style="color: #ed6c02;">Retards</h3>
+        <p style="font-size: 28pt; color: #ed6c02; font-weight: bold;">
+            {{ summary.late }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="width: 22%; text-align: center;">
+        <h3 style="color: #d32f2f;">Absents</h3>
+        <p style="font-size: 28pt; color: #d32f2f; font-weight: bold;">
+            {{ summary.absent }}
+        </p>
+    </div>
+    
+    <div class="info-section" style="width: 22%; text-align: center;">
+        <h3 style="color: #1976d2;">Excusés</h3>
+        <p style="font-size: 28pt; color: #1976d2; font-weight: bold;">
+            {{ summary.excused }}
+        </p>
+    </div>
+</div>
+
+<!-- Détails par Employé -->
+<h2>Détails de Présence</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 5%;">N°</th>
+            <th style="width: 25%;">Employé</th>
+            <th style="width: 15%;">Département</th>
+            <th style="width: 12%;">Arrivée</th>
+            <th style="width: 12%;">Départ</th>
+            <th style="width: 12%;">Heures</th>
+            <th style="width: 12%;">Statut</th>
+            <th style="width: 7%;">Retard</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for attendance in attendances %}
+        <tr>
+            <td style="text-align: center;">{{ forloop.counter }}</td>
+            <td>{{ attendance.employee.user.get_full_name }}</td>
+            <td>{{ attendance.employee.department|default:"-" }}</td>
+            <td style="text-align: center;">
+                {% if attendance.check_in %}
+                    {{ attendance.check_in|time:"H:i" }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td style="text-align: center;">
+                {% if attendance.check_out %}
+                    {{ attendance.check_out|time:"H:i" }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td style="text-align: center;">{{ attendance.hours_worked|default:"-" }}</td>
+            <td style="text-align: center;">
+                {% if attendance.status == 'present' %}
+                    <span style="font-weight: bold; color: #2e7d32;">Présent</span>
+                {% elif attendance.status == 'late' %}
+                    <span style="font-weight: bold; color: #ed6c02;">Retard</span>
+                {% elif attendance.status == 'absent' %}
+                    <span style="font-weight: bold; color: #d32f2f;">Absent</span>
+                {% else %}
+                    <span style="font-weight: bold; color: #1976d2;">Excusé</span>
+                {% endif %}
+            </td>
+            <td style="text-align: center;">
+                {% if attendance.delay_minutes %}
+                    <span style="color: #d32f2f;">{{ attendance.delay_minutes }} min</span>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% if attendance.notes %}
+        <tr>
+            <td colspan="8" style="background-color: #fff3cd; padding: 8px; font-size: 9pt;">
+                <strong>Note :</strong> {{ attendance.notes }}
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Anomalies -->
+{% if anomalies %}
+<h2 style="margin-top: 40px; color: #d32f2f;">⚠️ Anomalies Détectées</h2>
+
+<div class="alert alert-warning">
+    <ul style="margin: 0; padding-left: 20px;">
+        {% for anomaly in anomalies %}
+        <li>{{ anomaly }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Notes Additionnelles -->
+{% if additional_notes %}
+<div class="alert alert-info" style="margin-top: 30px;">
+    <strong>Notes :</strong> {{ additional_notes }}
+</div>
+{% endif %}
+
+<!-- Signature -->
+<div class="signature-section" style="margin-top: 60px;">
+    <div class="signature-box" style="width: 100%; text-align: right;">
+        <p>Vérifié par :</p>
+        <div class="signature-line" style="margin-left: auto; margin-right: 0; width: 300px;">
+            Date : {{ current_date|date:"d/m/Y" }}<br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

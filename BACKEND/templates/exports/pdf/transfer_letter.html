@@ -1,0 +1,131 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 22pt; color: #4472C4;">LETTRE DE MUTATION</h1>
+</div>
+
+<!-- En-tête lettre -->
+<div style="margin: 30px 0; text-align: right;">
+    <p>
+        <strong>{{ company.name }}</strong><br>
+        {{ company.address }}<br>
+        {{ company.email }}<br>
+        {{ company.phone }}
+    </p>
+    <p style="margin-top: 20px;">
+        Le {{ current_date|date:"d/m/Y" }}
+    </p>
+</div>
+
+<!-- Destinataire -->
+<div style="margin: 30px 0;">
+    <p>
+        À l'attention de :<br>
+        <strong>{{ employee.user.get_full_name }}</strong><br>
+        {{ employee.address|default:"" }}
+    </p>
+</div>
+
+<!-- Objet -->
+<div style="margin: 30px 0;">
+    <p><strong>Objet : Notification de mutation</strong></p>
+</div>
+
+<!-- Corps de la lettre -->
+<div style="margin: 40px 0; text-align: justify; line-height: 2;">
+    <p>Madame, Monsieur,</p>
+    
+    <p>
+        Nous avons le plaisir de vous informer que, par décision de la direction, vous êtes muté(e) 
+        à compter du <strong>{{ effective_date|date:"d/m/Y" }}</strong>.
+    </p>
+    
+    <div class="info-section" style="margin: 30px 0;">
+        <h3>Détails de la mutation</h3>
+        
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="width: 30%; padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Situation actuelle</strong></td>
+                <td style="width: 70%; padding: 10px; border: 1px solid #ddd;">{{ current_position }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Département actuel</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ current_department|default:"Non spécifié" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Nouveau poste</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong style="color: #2e7d32;">{{ new_position }}</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Nouveau département</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong style="color: #2e7d32;">{{ new_department }}</strong></td>
+            </tr>
+            {% if new_location %}
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Nouveau lieu</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ new_location }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd; background-color: #f8f9fa;"><strong>Date d'effet</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>{{ effective_date|date:"d/m/Y" }}</strong></td>
+            </tr>
+        </table>
+    </div>
+    
+    {% if salary_change %}
+    <p>
+        Votre nouvelle rémunération mensuelle brute sera de <strong>{{ new_salary|floatformat:2 }} €</strong>.
+    </p>
+    {% else %}
+    <p>
+        Votre rémunération mensuelle reste inchangée à <strong>{{ employee.base_salary|floatformat:2 }} €</strong>.
+    </p>
+    {% endif %}
+    
+    <p>
+        Cette mutation s'inscrit dans le cadre de la réorganisation de nos services et de l'optimisation 
+        de nos ressources humaines. Nous sommes convaincus que vous saurez mettre en œuvre vos compétences 
+        et votre expérience dans ce nouveau poste.
+    </p>
+    
+    {% if additional_info %}
+    <p>{{ additional_info }}</p>
+    {% endif %}
+    
+    <p>
+        Nous vous remercions pour votre collaboration et vous prions d'agréer, Madame, Monsieur, 
+        l'expression de nos salutations distinguées.
+    </p>
+</div>
+
+<!-- Mentions légales -->
+<div class="alert alert-info" style="margin-top: 30px;">
+    <strong>Note importante :</strong> Cette lettre de mutation fait partie intégrante de votre contrat de travail. 
+    Pour toute question ou clarification, n'hésitez pas à contacter le service des Ressources Humaines.
+</div>
+
+<!-- Signatures -->
+<div class="signature-section" style="margin-top: 60px; page-break-inside: avoid;">
+    <div style="display: flex; justify-content: space-between;">
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>Pour l'entreprise</strong></p>
+            <div class="signature-line">
+                {{ company.name }}<br>
+                Le Directeur / Responsable RH<br><br><br>
+                Signature et cachet
+            </div>
+        </div>
+        
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>Pris connaissance et accepté</strong></p>
+            <div class="signature-line">
+                {{ employee.user.get_full_name }}<br>
+                Le {{ current_date|date:"d/m/Y" }}<br><br><br>
+                Signature
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

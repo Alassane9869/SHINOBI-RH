@@ -4,7 +4,7 @@ import axiosClient from '../api/axiosClient';
 import toast from 'react-hot-toast';
 
 interface ExportMenuProps {
-    module: 'employees' | 'leaves' | 'payroll' | 'attendance';
+    module: 'dashboard' | 'users' | 'employees' | 'attendance' | 'leaves' | 'payroll' | 'documents' | 'company';
     className?: string;
 }
 
@@ -21,23 +21,37 @@ const ExportMenu: React.FC<ExportMenuProps> = ({ module, className = '' }) => {
                 responseType: 'blob'
             });
 
+            // Check if response is JSON (error) despite blob type
+            if (response.data.type === 'application/json') {
+                const text = await response.data.text();
+                const error = JSON.parse(text);
+                throw new Error(error.detail || 'Erreur lors de l\'export');
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
 
-            const extension = format === 'excel' ? 'xlsx' : format;
-            const filename = `${module}_${new Date().toISOString().split('T')[0]}.${extension}`;
-            link.setAttribute('download', filename);
+            // Try to get filename from header
+            let filename = `${module}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+            const contentDisposition = response.headers['content-disposition'];
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
 
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
 
             toast.success(`Export ${format.toUpperCase()} réussi`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Export error:', error);
-            toast.error('Erreur lors de l\'export');
+            toast.error(error.message || 'Erreur lors de l\'export');
         } finally {
             setIsExporting(false);
         }

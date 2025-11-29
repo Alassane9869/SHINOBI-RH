@@ -4,7 +4,7 @@ export interface User {
     email: string;
     first_name: string;
     last_name: string;
-    role: 'admin' | 'rh' | 'manager' | 'employe';
+    role: 'owner' | 'admin' | 'rh' | 'manager' | 'employe';
     company: number;
     has_employee_profile?: boolean;
 }
@@ -108,7 +108,7 @@ export interface UserFormData {
     email: string;
     first_name: string;
     last_name: string;
-    role: 'admin' | 'rh' | 'manager' | 'employe';
+    role: 'owner' | 'admin' | 'rh' | 'manager' | 'employe';
     password?: string;
 }
 

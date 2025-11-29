@@ -1,0 +1,120 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<!-- En-tête du rapport -->
+<div class="info-section">
+    <h2>Informations du Rapport</h2>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value">{{ month_name }} {{ year }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Nombre d'employés :</span>
+        <span class="info-value">{{ employees_count }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date de génération :</span>
+        <span class="info-value">{{ current_date|date:"d/m/Y à H:i" }}</span>
+    </div>
+</div>
+
+<!-- Liste des employés et montants -->
+<h2>Liste des Employés</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 10%;">N°</th>
+            <th style="width: 30%;">Nom Complet</th>
+            <th style="width: 20%;">Poste</th>
+            <th style="width: 20%; text-align: right;">Brut (€)</th>
+            <th style="width: 20%; text-align: right;">Net (€)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for payroll in payrolls %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ payroll.employee.user.get_full_name }}</td>
+            <td>{{ payroll.employee.position }}</td>
+            <td style="text-align: right;">{{ payroll.basic_salary|add:payroll.bonus|floatformat:2 }}</td>
+            <td style="text-align: right;">{{ payroll.net_salary|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Totaux -->
+        <tr class="table-total">
+            <td colspan="3" style="text-align: right; font-weight: bold;">TOTAL</td>
+            <td style="text-align: right; font-weight: bold;">{{ total_gross|floatformat:2 }}</td>
+            <td style="text-align: right; font-weight: bold;">{{ total_net|floatformat:2 }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Récapitulatif financier -->
+<h2 style="margin-top: 40px;">Récapitulatif Financier</h2>
+
+<table>
+    <tbody>
+        <tr>
+            <td style="width: 60%; font-weight: bold;">Total des salaires bruts</td>
+            <td style="width: 40%; text-align: right;">{{ total_gross|floatformat:2 }} €</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold;">Total des primes</td>
+            <td style="text-align: right;">{{ total_bonus|floatformat:2 }} €</td>
+        </tr>
+        <tr>
+            <td style="font-weight: bold;">Total des déductions</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ total_deductions|floatformat:2 }} €</td>
+        </tr>
+        <tr class="table-total">
+            <td style="font-size: 14pt;">TOTAL NET À PAYER</td>
+            <td style="text-align: right; font-size: 14pt; color: #2e7d32;">{{ total_net|floatformat:2 }} €</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Informations complémentaires -->
+<div class="alert alert-info" style="margin-top: 30px;">
+    <strong>Note :</strong> Ce document récapitule l'ensemble des salaires du mois de {{ month_name }} {{ year }}.
+    Le montant total de {{ total_net|floatformat:2 }} € sera viré aux comptes des employés concernés.
+</div>
+
+<!-- Statistiques -->
+<h2 style="margin-top: 40px;">Statistiques</h2>
+
+<div style="display: flex; justify-content: space-around; margin: 20px 0;">
+    <div class="info-section" style="width: 30%; text-align: center;">
+        <h3>Salaire Moyen</h3>
+        <p style="font-size: 18pt; color: #4472C4; font-weight: bold;">
+            {{ average_salary|floatformat:2 }} €
+        </p>
+    </div>
+    
+    <div class="info-section" style="width: 30%; text-align: center;">
+        <h3>Salaire Minimum</h3>
+        <p style="font-size: 18pt; color: #666; font-weight: bold;">
+            {{ min_salary|floatformat:2 }} €
+        </p>
+    </div>
+    
+    <div class="info-section" style="width: 30%; text-align: center;">
+        <h3>Salaire Maximum</h3>
+        <p style="font-size: 18pt; color: #2e7d32; font-weight: bold;">
+            {{ max_salary|floatformat:2 }} €
+        </p>
+    </div>
+</div>
+
+<!-- Section Signature -->
+<div class="signature-section" style="margin-top: 60px;">
+    <div class="signature-box" style="width: 100%; text-align: center;">
+        <p><strong>Responsable RH / Direction</strong></p>
+        <div class="signature-line">
+            {{ company.name }}<br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

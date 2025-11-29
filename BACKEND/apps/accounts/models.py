@@ -5,6 +5,7 @@ from apps.company.models import Company
 
 class CustomUser(AbstractUser, BaseModel):
     ROLE_CHOICES = (
+        ('owner', 'Propriétaire SaaS'),
         ('admin', 'Admin'),
         ('rh', 'RH'),
         ('manager', 'Manager'),
@@ -17,6 +18,11 @@ class CustomUser(AbstractUser, BaseModel):
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    @property
+    def is_saas_owner(self):
+        """Vérifie si l'utilisateur est le propriétaire de la plateforme."""
+        return self.role == 'owner' or self.is_superuser
 
     def __str__(self):
         return f"{self.email} - {self.role}"

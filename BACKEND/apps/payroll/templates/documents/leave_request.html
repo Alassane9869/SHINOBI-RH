@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Helvetica', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .company-name { font-size: 18pt; font-weight: bold; color: #2c3e50; }
+        .title { font-size: 16pt; font-weight: bold; text-align: center; margin: 30px 0; text-decoration: underline; }
+        .content { margin: 20px 40px; text-align: justify; }
+        .signature { margin-top: 50px; text-align: right; margin-right: 40px; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10pt; color: #7f8c8d; border-top: 1px solid #bdc3c7; padding-top: 10px; }
+        .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .details-table td { padding: 10px; border-bottom: 1px solid #eee; }
+        .details-table td:first-child { font-weight: bold; width: 40%; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div>{{ company.address }}</div>
+        <div>{{ company.phone }} | {{ company.email }}</div>
+    </div>
+
+    <div class="title">DEMANDE DE CONGÉ</div>
+
+    <div class="content">
+        <p>Fait à {{ company.city|default:"Bamako" }}, le {{ leave.created_at|date:"d F Y" }}</p>
+        <br>
+        
+        <table class="details-table">
+            <tr>
+                <td>Employé :</td>
+                <td>{{ leave.employee.user.first_name }} {{ leave.employee.user.last_name }}</td>
+            </tr>
+            <tr>
+                <td>Poste :</td>
+                <td>{{ leave.employee.position }}</td>
+            </tr>
+            <tr>
+                <td>Type de congé :</td>
+                <td>{{ leave.get_leave_type_display }}</td>
+            </tr>
+            <tr>
+                <td>Date de début :</td>
+                <td>{{ leave.start_date|date:"d F Y" }}</td>
+            </tr>
+            <tr>
+                <td>Date de fin :</td>
+                <td>{{ leave.end_date|date:"d F Y" }}</td>
+            </tr>
+            <tr>
+                <td>Durée :</td>
+                <td>{{ duration }} jours</td>
+            </tr>
+            <tr>
+                <td>Motif :</td>
+                <td>{{ leave.reason|default:"-" }}</td>
+            </tr>
+        </table>
+
+        <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+            <div style="float: left; width: 45%;">
+                <p><strong>Signature de l'employé :</strong></p>
+                <br><br><br>
+                <p>____________________</p>
+            </div>
+            <div style="float: right; width: 45%; text-align: right;">
+                <p><strong>Signature du responsable :</strong></p>
+                <br><br><br>
+                <p>____________________</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        {{ company.name }} - {{ company.address }} - {{ company.website }}
+    </div>
+</body>
+</html>

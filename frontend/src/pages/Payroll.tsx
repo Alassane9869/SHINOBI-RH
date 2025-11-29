@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
 import DataTable, { DataTableColumn } from '../components/DataTable';
 import ModalForm from '../components/ModalForm';
-import { Plus, DollarSign, Calendar, User, Calculator, FileText, Receipt } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import exportService, { getCurrentMonthYear } from '../api/exports';
+import { Plus, DollarSign, Calendar, User, Calculator, FileText, Receipt, Archive } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,6 +30,8 @@ const Payroll: React.FC = () => {
     const { register, handleSubmit, reset, formState: { errors } } = useForm<PayrollFormData>({
         resolver: zodResolver(payrollSchema),
     });
+
+    const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
 
     const { data: payrolls, isLoading } = useQuery<PayrollType[]>({
         queryKey: ['payrolls'],
@@ -63,18 +67,37 @@ const Payroll: React.FC = () => {
 
     const downloadPayslip = async (id: number) => {
         try {
-            const response = await axiosClient.get(`/api/payroll/${id}/`, {
+            const response = await axiosClient.get(`/api/payroll/${id}/pdf/`, {
                 responseType: 'blob'
             });
+
+            if (response.data.type === 'application/json') {
+                const text = await response.data.text();
+                const error = JSON.parse(text);
+                throw new Error(error.detail || 'Erreur lors du téléchargement');
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `bulletin_paie_${id}.pdf`);
+
+            let filename = `bulletin_paie_${id}.pdf`;
+            const contentDisposition = response.headers['content-disposition'];
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
-        } catch (error) {
-            toast.error('Erreur lors du téléchargement');
+            window.URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error('Download error:', error);
+            toast.error(error.message || 'Erreur lors du téléchargement');
         }
     };
 
@@ -83,16 +106,35 @@ const Payroll: React.FC = () => {
             const response = await axiosClient.get(`/api/payroll/${id}/payment_receipt/`, {
                 responseType: 'blob'
             });
+
+            if (response.data.type === 'application/json') {
+                const text = await response.data.text();
+                const error = JSON.parse(text);
+                throw new Error(error.detail || 'Erreur lors du téléchargement');
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `recu_paiement_${id}.pdf`);
+
+            let filename = `recu_paiement_${id}.pdf`;
+            const contentDisposition = response.headers['content-disposition'];
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1];
+                }
+            }
+
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
             toast.success('Reçu téléchargé');
-        } catch (error) {
-            toast.error('Erreur lors du téléchargement du reçu');
+        } catch (error: any) {
+            console.error('Download error:', error);
+            toast.error(error.message || 'Erreur lors du téléchargement du reçu');
         }
     };
 
@@ -126,9 +168,24 @@ const Payroll: React.FC = () => {
                     <h1 className="page-title">Paie</h1>
                     <p className="page-subtitle">Gérez les salaires et bulletins de paie</p>
                 </div>
-                <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-                    Nouvelle paie
-                </Button>
+                <div className="flex gap-3">
+                    <ExportButton
+                        label="Journal"
+                        formats={['pdf', 'excel']}
+                        onExport={(format) => exportService.exportPayrollJournal(currentMonth, currentYear, format as 'pdf' | 'excel')}
+                        variant="outline"
+                    />
+                    <ExportButton
+                        label="Bulletins (ZIP)"
+                        formats={['zip']}
+                        onExport={() => exportService.exportBulkPayslips(currentMonth, currentYear)}
+                        variant="outline"
+                        icon={<Archive className="w-4 h-4" />}
+                    />
+                    <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+                        Nouvelle paie
+                    </Button>
+                </div>
             </div>
 
             <div className="card">

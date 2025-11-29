@@ -6,6 +6,7 @@ import { Users, Calendar, Briefcase, DollarSign, TrendingUp, ArrowUpRight, Spark
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { DashboardStats } from '../types';
 import { Card, Button, Badge } from '../components/ui';
+import ExportMenu from '../components/ExportMenu';
 import { motion } from 'framer-motion';
 
 interface ChartData {
@@ -90,10 +91,9 @@ const Dashboard: React.FC = () => {
                     </h1>
                     <p className="page-subtitle">Vue d'ensemble de votre activité RH en temps réel</p>
                 </div>
-                <Button variant="primary" className="group">
-                    <Sparkles className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-                    Nouveau Rapport
-                </Button>
+                <div className="flex gap-3">
+                    <ExportMenu module="dashboard" />
+                </div>
             </motion.div>
 
             {/* KPIs */}

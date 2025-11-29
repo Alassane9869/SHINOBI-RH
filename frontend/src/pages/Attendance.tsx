@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
 import DataTable, { DataTableColumn } from '../components/DataTable';
+import ExportButton from '../components/ExportButton';
+import exportService, { getTodayDate, getCurrentMonthYear } from '../api/exports';
 import ModalForm from '../components/ModalForm';
 import { Plus, Calendar, Clock, UserCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -27,6 +29,9 @@ const Attendance: React.FC = () => {
     const { register, handleSubmit, reset, formState: { errors } } = useForm<AttendanceFormData>({
         resolver: zodResolver(attendanceSchema),
     });
+
+    const today = getTodayDate();
+    const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
 
     const { data: attendances, isLoading } = useQuery<AttendanceType[]>({
         queryKey: ['attendances'],
@@ -142,9 +147,25 @@ const Attendance: React.FC = () => {
                         Suivez les arrivées et départs de vos collaborateurs en temps réel.
                     </p>
                 </div>
-                <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-                    Nouvelle présence
-                </Button>
+                <div className="flex gap-3">
+                    <ExportButton
+                        label="Quotidien"
+                        formats={['pdf', 'excel', 'csv']}
+                        onExport={(format) => exportService.exportDailyAttendance(today, format as 'pdf' | 'excel' | 'csv')}
+                        variant="outline"
+                        size="sm"
+                    />
+                    <ExportButton
+                        label="Mensuel"
+                        formats={['pdf', 'excel']}
+                        onExport={(format) => exportService.exportMonthlyAttendance(currentMonth, currentYear, format as 'pdf' | 'excel')}
+                        variant="outline"
+                        size="sm"
+                    />
+                    <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
+                        Nouvelle présence
+                    </Button>
+                </div>
             </div>
 
             {/* Data Table */}

@@ -1,0 +1,160 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<!-- Section Informations Employé -->
+<div class="info-section">
+    <h2>Informations Employé</h2>
+    <div class="info-row">
+        <span class="info-label">Nom complet :</span>
+        <span class="info-value">{{ employee.user.get_full_name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Matricule :</span>
+        <span class="info-value">{{ employee.id }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Poste :</span>
+        <span class="info-value">{{ employee.position }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Département :</span>
+        <span class="info-value">{{ employee.department|default:"N/A" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value">{{ month }}/{{ year }}</span>
+    </div>
+</div>
+
+<!-- Section Détails de la Paie -->
+<h2>Détails de la Rémunération</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60%;">Libellé</th>
+            <th style="width: 20%; text-align: right;">Nombre</th>
+            <th style="width: 20%; text-align: right;">Montant (€)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Salaire de base -->
+        <tr>
+            <td>Salaire de base</td>
+            <td style="text-align: right;">-</td>
+            <td style="text-align: right;">{{ basic_salary|floatformat:2 }}</td>
+        </tr>
+        
+        <!-- Heures supplémentaires -->
+        {% if overtime_hours %}
+        <tr>
+            <td>Heures supplémentaires</td>
+            <td style="text-align: right;">{{ overtime_hours }}</td>
+            <td style="text-align: right;">{{ overtime_amount|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        <!-- Primes et bonus -->
+        {% if bonus and bonus > 0 %}
+        <tr>
+            <td>Primes et bonus</td>
+            <td style="text-align: right;">-</td>
+            <td style="text-align: right;">{{ bonus|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        <!-- Total brut -->
+        <tr style="background-color: #f0f0f0; font-weight: bold;">
+            <td colspan="2">TOTAL BRUT</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+        </tr>
+        
+        <!-- Déductions -->
+        <tr>
+            <td colspan="3" style="background-color: #fff3cd; font-weight: bold; padding: 8px;">
+                DÉDUCTIONS
+            </td>
+        </tr>
+        
+        {% if social_contributions %}
+        <tr>
+            <td>Cotisations sociales</td>
+            <td style="text-align: right;">-</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ social_contributions|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if tax_amount %}
+        <tr>
+            <td>Impôts sur le revenu</td>
+            <td style="text-align: right;">-</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ tax_amount|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if deductions and deductions > 0 %}
+        <tr>
+            <td>Autres déductions</td>
+            <td style="text-align: right;">-</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ deductions|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        <!-- Net à payer -->
+        <tr class="table-total">
+            <td colspan="2" style="font-size: 14pt;">NET À PAYER</td>
+            <td style="text-align: right; font-size: 14pt; color: #2e7d32;">{{ net_salary|floatformat:2 }} €</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Informations de paiement -->
+{% if payment_date or bank_account %}
+<div class="info-section" style="margin-top: 30px;">
+    <h3>Informations de Paiement</h3>
+    {% if payment_date %}
+    <div class="info-row">
+        <span class="info-label">Date de paiement :</span>
+        <span class="info-value">{{ payment_date|date:"d/m/Y" }}</span>
+    </div>
+    {% endif %}
+    {% if bank_account %}
+    <div class="info-row">
+        <span class="info-label">Compte bancaire :</span>
+        <span class="info-value">{{ bank_account }}</span>
+    </div>
+    {% endif %}
+    <div class="info-row">
+        <span class="info-label">Mode de paiement :</span>
+        <span class="info-value">Virement bancaire</span>
+    </div>
+</div>
+{% endif %}
+
+<!-- Mentions légales -->
+<div class="alert alert-info" style="margin-top: 30px;">
+    <strong>Note importante :</strong> Ce bulletin de paie est un document officiel. 
+    Il doit être conservé sans limitation de durée. En cas de perte, aucun duplicata 
+    ne pourra être délivré.
+</div>
+
+<!-- Section Signature -->
+<div class="signature-section">
+    <div class="signature-box" style="float: left;">
+        <p><strong>L'Employeur</strong></p>
+        <div class="signature-line">
+            {{ company.name }}<br>
+            Signature et cachet
+        </div>
+    </div>
+    
+    <div class="signature-box" style="float: right;">
+        <p><strong>L'Employé</strong></p>
+        <div class="signature-line">
+            {{ employee.user.get_full_name }}<br>
+            Signature
+        </div>
+    </div>
+    <div style="clear: both;"></div>
+</div>
+{% endblock %}

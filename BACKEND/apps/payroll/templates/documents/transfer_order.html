@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: 'Helvetica', sans-serif; font-size: 12pt; line-height: 1.5; color: #333; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .company-name { font-size: 18pt; font-weight: bold; color: #2c3e50; }
+        .title { font-size: 16pt; font-weight: bold; text-align: center; margin: 30px 0; text-decoration: underline; }
+        .content { margin: 20px 40px; text-align: justify; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10pt; }
+        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .table th { background-color: #f2f2f2; font-weight: bold; }
+        .total-row { font-weight: bold; background-color: #e8e8e8; }
+        .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 10pt; color: #7f8c8d; border-top: 1px solid #bdc3c7; padding-top: 10px; }
+        .signature { margin-top: 50px; text-align: right; margin-right: 40px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">{{ company.name }}</div>
+        <div>{{ company.address }}</div>
+        <div>{{ company.phone }} | {{ company.email }}</div>
+    </div>
+
+    <div class="title">ORDRE DE VIREMENT - {{ month_name }} {{ year }}</div>
+
+    <div class="content">
+        <p><strong>À l'attention de :</strong> {{ bank_name|default:"La Banque" }}</p>
+        <p><strong>Date :</strong> {{ current_date|date:"d/m/Y" }}</p>
+        <br>
+        <p>Messieurs,</p>
+        <p>Par la présente, nous vous prions de bien vouloir débiter notre compte N° <strong>{{ company.account_number|default:"-" }}</strong> et de créditer les comptes des bénéficiaires listés ci-dessous pour le paiement des salaires du mois de <strong>{{ month_name }} {{ year }}</strong>.</p>
+        
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>N°</th>
+                    <th>Bénéficiaire</th>
+                    <th>Compte Bancaire</th>
+                    <th>Montant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.employee_name }}</td>
+                    <td>{{ item.bank_account|default:"-" }}</td>
+                    <td>{{ item.amount }} FCFA</td>
+                </tr>
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">TOTAL</td>
+                    <td>{{ total_amount }} FCFA</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Nous vous prions d'agréer, Messieurs, l'expression de nos salutations distinguées.</p>
+    </div>
+
+    <div class="signature">
+        <p>La Direction Générale</p>
+        <br><br><br>
+        <p>____________________</p>
+    </div>
+
+    <div class="footer">
+        {{ company.name }} - {{ company.address }} - {{ company.website }}
+    </div>
+</body>
+</html>

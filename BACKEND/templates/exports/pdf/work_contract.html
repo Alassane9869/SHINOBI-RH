@@ -1,0 +1,236 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 24pt; color: #4472C4;">CONTRAT DE TRAVAIL</h1>
+    <h2 style="font-size: 16pt; color: #666; margin-top: 10px;">
+        {% if contract_type == 'CDI' %}
+        Contrat à Durée Indéterminée
+        {% elif contract_type == 'CDD' %}
+        Contrat à Durée Déterminée
+        {% elif contract_type == 'STAGE' %}
+        Convention de Stage
+        {% else %}
+        {{ contract_type }}
+        {% endif %}
+    </h2>
+</div>
+
+<!-- Préambule -->
+<div style="margin: 30px 0; text-align: justify; line-height: 1.8;">
+    <p>
+        Entre les soussignés :
+    </p>
+</div>
+
+<!-- L'employeur -->
+<div class="info-section">
+    <h2>L'EMPLOYEUR</h2>
+    <div class="info-row">
+        <span class="info-label">Société :</span>
+        <span class="info-value">{{ company.name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Forme juridique :</span>
+        <span class="info-value">{{ company_legal_form|default:"SARL" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Siège social :</span>
+        <span class="info-value">{{ company.address }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Représenté par :</span>
+        <span class="info-value">{{ company_representative|default:"Le Directeur Général" }}</span>
+    </div>
+    <p style="margin-top: 10px; text-align: center;">Ci-après dénommée « l'Employeur »</p>
+</div>
+
+<p style="text-align: center; font-weight: bold; margin: 20px 0;">D'UNE PART,</p>
+
+<!-- Le salarié -->
+<div class="info-section">
+    <h2>LE SALARIÉ</h2>
+    <div class="info-row">
+        <span class="info-label">Nom et Prénom :</span>
+        <span class="info-value" style="font-weight: bold;">{{ employee.user.get_full_name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date de naissance :</span>
+        <span class="info-value">{{ employee_birth_date|date:"d/m/Y"|default:"Non renseignée" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Adresse :</span>
+        <span class="info-value">{{ employee.address|default:"Non renseignée" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">N° Sécurité Sociale :</span>
+        <span class="info-value">{{ employee_ss_number|default:"À renseigner" }}</span>
+    </div>
+    <p style="margin-top: 10px; text-align: center;">Ci-après dénommé « le Salarié »</p>
+</div>
+
+<p style="text-align: center; font-weight: bold; margin: 20px 0;">D'AUTRE PART,</p>
+
+<p style="text-align: center; margin: 30px 0; font-weight: bold; font-size: 14pt;">
+    IL A ÉTÉ CONVENU ET ARRÊTÉ CE QUI SUIT :
+</p>
+
+<!-- ARTICLE 1 : Objet et nature du contrat -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 1 : OBJET ET NATURE DU CONTRAT</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le présent contrat est un contrat de travail 
+        <strong>
+        {% if contract_type == 'CDI' %}
+        à durée indéterminée (CDI)
+        {% elif contract_type == 'CDD' %}
+        à durée déterminée (CDD)
+        {% elif contract_type == 'STAGE' %}
+        de stage
+        {% endif %}
+        </strong>
+        régi par les dispositions du Code du travail en vigueur.
+        {% if contract_type == 'CDD' and contract_reason %}
+        <br><strong>Motif du CDD :</strong> {{ contract_reason }}
+        {% endif %}
+    </p>
+</div>
+
+<!-- ARTICLE 2 : Fonction et qualification -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 2 : FONCTION ET QUALIFICATION</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le Salarié est engagé en qualité de <strong>{{ employee.position }}</strong>
+        {% if employee.department %} au sein du département <strong>{{ employee.department }}</strong>{% endif %}.
+    </p>
+    {% if job_description %}
+    <p style="margin-top: 10px;">
+        <strong>Missions principales :</strong><br>
+        {{ job_description|safe }}
+    </p>
+    {% endif %}
+</div>
+
+<!-- ARTICLE 3 : Durée du contrat -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 3 : DURÉE DU CONTRAT</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le contrat prend effet le <strong>{{ start_date|date:"d/m/Y" }}</strong>.
+        {% if contract_type == 'CDD' and end_date %}
+        <br>Il prendra fin le <strong>{{ end_date|date:"d/m/Y" }}</strong>, sauf renouvellement par accord des parties.
+        {% endif %}
+    </p>
+    {% if probation_period %}
+    <p style="margin-top: 10px;">
+        <strong>Période d'essai :</strong> {{ probation_period }} mois, renouvelable une fois.
+    </p>
+    {% endif %}
+</div>
+
+<!-- ARTICLE 4 : Lieu de travail -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 4 : LIEU DE TRAVAIL</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le Salarié exercera ses fonctions au siège de l'entreprise situé à <strong>{{ work_location|default:company.address }}</strong>.
+        {% if remote_work %}
+        <br>Un télétravail partiel pourra être mis en place selon les modalités définies par l'entreprise.
+        {% endif %}
+    </p>
+</div>
+
+<!-- ARTICLE 5 : Horaires de travail -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 5 : HORAIRES DE TRAVAIL</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        La durée hebdomadaire de travail est de <strong>{{ weekly_hours|default:"35" }} heures</strong>, 
+        réparties sur <strong>{{ working_days|default:"5" }} jours</strong> par semaine.
+        <br>Horaires : {{ work_schedule|default:"09h00 - 17h00 du lundi au vendredi" }}.
+    </p>
+</div>
+
+<!-- ARTICLE 6 : Rémunération -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 6 : RÉMUNÉRATION</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        En contrepartie de son travail, le Salarié percevra une rémunération mensuelle brute de 
+        <strong style="color: #2e7d32;">{{ salary|floatformat:2 }} €</strong>.
+    </p>
+    <p style="margin-top: 10px;">
+        Cette rémunération sera versée par virement bancaire à la fin de chaque mois.
+    </p>
+    {% if benefits %}
+    <p style="margin-top: 10px;">
+        <strong>Avantages :</strong> {{ benefits }}
+    </p>
+    {% endif %}
+</div>
+
+<!-- ARTICLE 7 : Congés -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 7 : CONGÉS PAYÉS</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le Salarié bénéficie de congés payés conformément aux dispositions légales en vigueur, 
+        soit <strong>30 jours ouvrables</strong> par année travaillée.
+    </p>
+</div>
+
+<!-- ARTICLE 8 : Confidentialité -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 8 : CONFIDENTIALITÉ</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Le Salarié s'engage à respecter la confidentialité absolue sur toutes les informations 
+        relatives à l'entreprise, ses clients, ses projets et ses activités. Cette obligation 
+        de confidentialité demeure après la cessation du contrat de travail.
+    </p>
+</div>
+
+<!-- ARTICLE 9 : Rupture du contrat -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 9 : RUPTURE DU CONTRAT</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        {% if contract_type == 'CDI' %}
+        Le contrat peut être rompu par l'une ou l'autre des parties moyennant le respect d'un préavis 
+        de <strong>{{ notice_period|default:"1" }} mois</strong>, conformément aux dispositions légales.
+        {% elif contract_type == 'CDD' %}
+        Le contrat ne peut être rompu avant son terme que dans les cas prévus par la loi.
+        {% endif %}
+    </p>
+</div>
+
+<!-- ARTICLE 10 : Dispositions diverses -->
+<div style="margin: 30px 0; page-break-inside: avoid;">
+    <h3 style="color: #4472C4;">ARTICLE 10 : DISPOSITIONS DIVERSES</h3>
+    <p style="text-align: justify; line-height: 1.8;">
+        Toutes les modifications au présent contrat devront faire l'objet d'un avenant écrit signé par les deux parties.
+        Le présent contrat est régi par le droit du travail en vigueur.
+    </p>
+</div>
+
+<!-- Signatures -->
+<div class="signature-section" style="margin-top: 80px; page-break-inside: avoid;">
+    <p style="text-align: center; margin-bottom: 40px;">
+        Fait en deux exemplaires originaux, le {{ current_date|date:"d/m/Y" }}
+    </p>
+    
+    <div style="display: flex; justify-content: space-between;">
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>L'EMPLOYEUR</strong></p>
+            <div class="signature-line">
+                {{ company.name }}<br>
+                {{ company_representative|default:"Le Directeur Général" }}<br><br><br>
+                Signature et cachet
+            </div>
+        </div>
+        
+        <div class="signature-box" style="width: 45%;">
+            <p><strong>LE SALARIÉ</strong></p>
+            <div class="signature-line">
+                {{ employee.user.get_full_name }}<br>
+                Lu et approuvé<br>
+                Bon pour accord<br><br>
+                Signature
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

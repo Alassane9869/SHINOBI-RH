@@ -29,8 +29,13 @@ const Login: React.FC = () => {
     const onSubmit = async (data: LoginFormData) => {
         setIsLoading(true);
         try {
-            await login(data.email, data.password);
-            navigate('/dashboard');
+            const user = await login(data.email, data.password);
+            // Redirection conditionnelle selon le rôle
+            if (user.role === 'owner') {
+                navigate('/saas');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (error: any) {
             console.error('Login error:', error);
             let message = 'Erreur de connexion';

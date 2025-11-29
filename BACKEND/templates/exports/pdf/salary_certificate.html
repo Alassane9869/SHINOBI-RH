@@ -1,0 +1,209 @@
+{% extends "exports/pdf/base.html" %}
+
+{% block content %}
+<div style="text-align: center; margin: 40px 0;">
+    <h1 style="font-size: 22pt; color: #4472C4;">CERTIFICAT DE SALAIRE</h1>
+</div>
+
+<!-- Informations Entreprise -->
+<div class="info-section">
+    <h2>Informations de l'Employeur</h2>
+    <div class="info-row">
+        <span class="info-label">Raison sociale :</span>
+        <span class="info-value">{{ company.name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Adresse :</span>
+        <span class="info-value">{{ company.address }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Email :</span>
+        <span class="info-value">{{ company.email }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Téléphone :</span>
+        <span class="info-value">{{ company.phone }}</span>
+    </div>
+</div>
+
+<!-- Informations Employé -->
+<div class="info-section">
+    <h2>Informations du Salarié</h2>
+    <div class="info-row">
+        <span class="info-label">Nom et Prénom :</span>
+        <span class="info-value" style="font-weight: bold;">{{ employee.user.get_full_name }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Matricule :</span>
+        <span class="info-value">{{ employee.id|truncatechars:12 }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Poste occupé :</span>
+        <span class="info-value">{{ employee.position }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Département :</span>
+        <span class="info-value">{{ employee.department|default:"Non spécifié" }}</span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Date d'embauche :</span>
+        <span class="info-value">{{ employee.date_hired|date:"d/m/Y"|default:"Non renseignée" }}</span>
+    </div>
+</div>
+
+<!-- Période de Référence -->
+<div class="info-section">
+    <h2>Période de Référence</h2>
+    <div class="info-row">
+        <span class="info-label">Période :</span>
+        <span class="info-value" style="font-weight: bold;">
+            {% if period_start and period_end %}
+                Du {{ period_start|date:"d/m/Y" }} au {{ period_end|date:"d/m/Y" }}
+            {% elif month and year %}
+                {{ month_name }} {{ year }}
+            {% else %}
+                Année {{ current_date|date:"Y" }}
+            {% endif %}
+        </span>
+    </div>
+</div>
+
+<!-- Détails de la Rémunération -->
+<h2>Détails de la Rémunération</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60%;">Composante</th>
+            <th style="width: 40%; text-align: right;">Montant (€)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Salaire de base mensuel</strong></td>
+            <td style="text-align: right; font-weight: bold;">{{ basic_salary|floatformat:2 }}</td>
+        </tr>
+        
+        {% if allowances %}
+        <tr>
+            <td>Indemnités et allocations</td>
+            <td style="text-align: right;">{{ allowances|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if bonuses %}
+        <tr>
+            <td>Primes et gratifications</td>
+            <td style="text-align: right;">{{ bonuses|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if overtime_pay %}
+        <tr>
+            <td>Heures supplémentaires</td>
+            <td style="text-align: right;">{{ overtime_pay|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        <tr style="background-color: #f0f0f0; font-weight: bold;">
+            <td>SALAIRE BRUT MENSUEL</td>
+            <td style="text-align: right;">{{ gross_salary|floatformat:2 }}</td>
+        </tr>
+        
+        <tr>
+            <td colspan="2" style="background-color: #fff3cd; font-weight: bold; padding: 8px;">
+                DÉDUCTIONS ET COTISATIONS
+            </td>
+        </tr>
+        
+        {% if social_security %}
+        <tr>
+            <td>Cotisations sécurité sociale</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ social_security|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if income_tax %}
+        <tr>
+            <td>Impôt sur le revenu</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ income_tax|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        {% if other_deductions %}
+        <tr>
+            <td>Autres déductions</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ other_deductions|floatformat:2 }}</td>
+        </tr>
+        {% endif %}
+        
+        <tr class="table-total">
+            <td style="font-size: 14pt;">SALAIRE NET MENSUEL</td>
+            <td style="text-align: right; font-size: 14pt; color: #2e7d32;">{{ net_salary|floatformat:2 }} €</td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Récapitulatif Annuel (si applicable) -->
+{% if annual_data %}
+<h2 style="margin-top: 40px;">Récapitulatif Annuel</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60%;">Indicateur</th>
+            <th style="width: 40%; text-align: right;">Montant (€)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Total brut annuel</td>
+            <td style="text-align: right;">{{ annual_data.gross|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td>Total déductions annuel</td>
+            <td style="text-align: right; color: #d32f2f;">-{{ annual_data.deductions|floatformat:2 }}</td>
+        </tr>
+        <tr class="table-total">
+            <td><strong>Total net annuel</strong></td>
+            <td style="text-align: right; font-weight: bold; color: #2e7d32;">{{ annual_data.net|floatformat:2 }} €</td>
+        </tr>
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Déclaration -->
+<div style="margin: 40px 0; text-align: justify; line-height: 2;">
+    <p>
+        Je soussigné(e), représentant de <strong>{{ company.name }}</strong>, certifie que les informations 
+        contenues dans ce document sont exactes et conformes aux enregistrements de notre entreprise.
+    </p>
+    
+    <p>
+        Ce certificat de salaire est délivré à la demande de l'intéressé(e) pour servir et valoir ce que de droit.
+    </p>
+</div>
+
+<!-- Mentions Légales -->
+<div class="alert alert-info">
+    <strong>Mentions légales :</strong>
+    <ul style="margin: 10px 0 0 20px;">
+        <li>Ce document ne constitue pas une fiche de paie officielle</li>
+        <li>Les montants indiqués sont des montants bruts et nets avant prélèvement à la source</li>
+        <li>Pour toute demande de renseignements complémentaires, contacter le service RH</li>
+    </ul>
+</div>
+
+<!-- Signature -->
+<div class="signature-section" style="margin-top: 60px; page-break-inside: avoid;">
+    <div class="signature-box" style="width: 100%; text-align: right;">
+        <p>Fait à ____________, le {{ current_date|date:"d/m/Y" }}</p>
+        <br><br>
+        <div class="signature-line" style="margin-left: auto; margin-right: 0; width: 300px;">
+            <strong>{{ company.name }}</strong><br>
+            Le Directeur / Responsable RH<br><br><br>
+            Signature et cachet
+        </div>
+    </div>
+</div>
+{% endblock %}

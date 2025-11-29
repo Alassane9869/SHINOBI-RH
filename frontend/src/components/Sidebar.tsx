@@ -11,6 +11,10 @@ import {
     LucideIcon,
     LogOut,
     Sparkles,
+    Shield,
+    Building2,
+    Activity,
+    CreditCard,
 } from 'lucide-react';
 import useAuthStore from '../auth/AuthStore';
 
@@ -27,6 +31,17 @@ const Sidebar: React.FC = () => {
     const { user, logout } = useAuthStore();
 
     const menuItems: MenuItem[] = [
+        // Menu spécifique Owner
+        { path: '/saas', icon: Shield, label: 'SaaS Admin', roles: ['owner'], color: 'from-purple-600 to-indigo-600' },
+        { path: '/saas/companies', icon: Building2, label: 'Entreprises', roles: ['owner'], color: 'from-blue-600 to-cyan-600' },
+        { path: '/saas/analytics', icon: Activity, label: 'Analytics', roles: ['owner'], color: 'from-green-600 to-emerald-600' },
+        { path: '/saas/billing', icon: CreditCard, label: 'Facturation', roles: ['owner'], color: 'from-emerald-600 to-teal-600' },
+        { path: '/users', icon: Users, label: 'Tous les Utilisateurs', roles: ['owner'], color: 'from-purple-500 to-pink-500' },
+        { path: '/saas/monitoring', icon: Activity, label: 'Monitoring', roles: ['owner'], color: 'from-orange-600 to-red-600' },
+        { path: '/saas/logs', icon: FileText, label: 'Logs Système', roles: ['owner'], color: 'from-slate-600 to-gray-600' },
+        { path: '/saas/config', icon: Settings, label: 'Config Plateforme', roles: ['owner'], color: 'from-gray-500 to-slate-500' },
+
+        // Menu standard pour les autres rôles
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'rh', 'manager', 'employe'], color: 'from-blue-500 to-cyan-500' },
         { path: '/users', icon: Users, label: 'Utilisateurs', roles: ['admin', 'rh'], color: 'from-purple-500 to-pink-500' },
         { path: '/employees', icon: Users, label: 'Employés', roles: ['admin', 'rh'], color: 'from-indigo-500 to-purple-500' },
@@ -76,8 +91,8 @@ const Sidebar: React.FC = () => {
                             to={item.path}
                             style={{ animationDelay: `${index * 0.05}s` }}
                             className={`relative group flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 animate-fade-in ${isActive
-                                    ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg transform scale-105'
-                                    : 'text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 hover:scale-102'
+                                ? 'bg-gradient-to-r ' + item.color + ' text-white shadow-lg transform scale-105'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-gray-800/50 hover:scale-102'
                                 }`}
                         >
                             {isActive && (

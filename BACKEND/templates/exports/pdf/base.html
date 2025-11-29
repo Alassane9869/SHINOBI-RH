@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="{{ company.name }}">
+    <meta name="description" content="{{ title }}">
+    <title>{{ title }}</title>
+    <style>
+        /* Reset et base */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        /* Configuration de la page */
+        @page {
+            size: A4;
+            margin: 2cm 1.5cm;
+            
+            /* En-tête */
+            @top-left {
+                content: "{{ company.name }}";
+                font-size: 10pt;
+                color: #666;
+            }
+            
+            @top-right {
+                content: "{{ title }}";
+                font-size: 10pt;
+                color: #666;
+                text-align: right;
+            }
+            
+            /* Pied de page */
+            @bottom-left {
+                content: "Généré le {{ current_date|date:'d/m/Y à H:i' }}";
+                font-size: 9pt;
+                color: #999;
+            }
+            
+            @bottom-center {
+                content: "Page " counter(page) " sur " counter(pages);
+                font-size: 9pt;
+                color: #666;
+            }
+            
+            @bottom-right {
+                content: "Confidentiel";
+                font-size: 9pt;
+                color: #999;
+            }
+        }
+        
+        /* Police et typographie */
+        body {
+            font-family: 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        /* En-tête du document */
+        .document-header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 3px solid #4472C4;
+            margin-bottom: 30px;
+        }
+        
+        .company-logo {
+            max-width: 150px;
+            max-height: 80px;
+            margin-bottom: 15px;
+        }
+        
+        .document-title {
+            font-size: 24pt;
+            font-weight: bold;
+            color: #4472C4;
+            margin: 10px 0;
+        }
+        
+        .document-subtitle {
+            font-size: 14pt;
+            color: #666;
+        }
+        
+        /* Section d'informations */
+        .info-section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #4472C4;
+        }
+        
+        .info-row {
+            margin: 8px 0;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            min-width: 150px;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        thead {
+            background-color: #4472C4;
+            color: white;
+        }
+        
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+        
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        
+        .table-total {
+            font-weight: bold;
+            background-color: #e7f0ff !important;
+            border-top: 2px solid #4472C4;
+        }
+        
+        /* Titres de sections */
+        h1 {
+            font-size: 20pt;
+            color: #4472C4;
+            margin: 25px 0 15px 0;
+            border-bottom: 2px solid #4472C4;
+            padding-bottom: 5px;
+        }
+        
+        h2 {
+            font-size: 16pt;
+            color: #555;
+            margin: 20px 0 10px 0;
+        }
+        
+        h3 {
+            font-size: 13pt;
+            color: #666;
+            margin: 15px 0 8px 0;
+        }
+        
+        /* Paragraphes */
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+        
+        /* Listes */
+        ul, ol {
+            margin: 10px 0 10px 25px;
+        }
+        
+        li {
+            margin: 5px 0;
+        }
+        
+        /* QR Code */
+        .qr-code {
+            text-align: right;
+            margin: 20px 0;
+        }
+        
+        .qr-code img {
+            width: 120px;
+            height: 120px;
+            border: 2px solid #ddd;
+            padding: 5px;
+        }
+        
+        .qr-code-label {
+            font-size: 9pt;
+            color: #999;
+            text-align: right;
+            margin-top: 5px;
+        }
+        
+        /* Signature */
+        .signature-section {
+            margin-top: 50px;
+            page-break-inside: avoid;
+        }
+        
+        .signature-box {
+            display: inline-block;
+            width: 45%;
+            margin: 20px 2.5%;
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 10px;
+            font-size: 10pt;
+        }
+        
+        /* Alertes et notes */
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            border-color: #0c5460;
+            color: #0c5460;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #856404;
+            color: #856404;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #721c24;
+            color: #721c24;
+        }
+        
+        /* Utilitaires */
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-bold {
+            font-weight: bold;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .no-break {
+            page-break-inside: avoid;
+        }
+        
+        /* Pied de document */
+        .document-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête du document -->
+    <div class="document-header">
+        {% if company.logo %}
+        <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="company-logo">
+        {% endif %}
+        
+        <h1 class="document-title">{{ title }}</h1>
+        
+        {% if subtitle %}
+        <div class="document-subtitle">{{ subtitle }}</div>
+        {% endif %}
+    </div>
+    
+    <!-- QR Code de vérification -->
+    {% if qr_code %}
+    <div class="qr-code">
+        <img src="{{ qr_code }}" alt="QR Code de vérification">
+        <div class="qr-code-label">Code de vérification</div>
+    </div>
+    {% endif %}
+    
+    <!-- Contenu principal (à surcharger dans les templates enfants) -->
+    {% block content %}
+    <p>Contenu du document à définir dans le template enfant.</p>
+    {% endblock %}
+    
+    <!-- Pied de document -->
+    <div class="document-footer">
+        <p>
+            Ce document a été généré automatiquement par {{ company.name }}.<br>
+            Pour toute question, veuillez contacter {{ company.email }} ou {{ company.phone }}.
+        </p>
+        {% if metadata %}
+        <p style="margin-top: 10px;">
+            <strong>Métadonnées :</strong> 
+            Généré le {{ metadata.created_at|date:'d/m/Y à H:i' }} par {{ metadata.exported_by }}
+            {% if metadata.record_count %} | {{ metadata.record_count }} enregistrement(s){% endif %}
+        </p>
+        {% endif %}
+    </div>
+</body>
+</html>
