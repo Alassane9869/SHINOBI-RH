@@ -1,56 +1,71 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosClient from '../api/axiosClient';
-import DataTable, { DataTableColumn } from '../components/DataTable';
-import ExportButton from '../components/ExportButton';
-import exportService, { getTodayDate, getCurrentMonthYear } from '../api/exports';
-import ModalForm from '../components/ModalForm';
-import { Plus, Calendar, Clock, UserCheck } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Attendance as AttendanceType, Employee } from '../types';
-import { Button, Input, Select } from '../components/ui';
+import {
+    Plus, Search, UserCheck, FileDown, Calendar, CalendarRange, CalendarClock, User, Download, FileText, FileSpreadsheet, Loader2, ChevronDown, TrendingUp, BarChart3, Clock, MessageSquare, AlertCircle
+} from 'lucide-react';
 
+import { Button, Input, Select } from '../components/ui';
+import DataTable, { DataTableColumn } from '../components/DataTable';
+import ModalForm from '../components/ModalForm';
+import useAuthStore from '../auth/AuthStore';
+import { attendanceService, downloadBlob } from '../api/attendance';
+import { Attendance as AttendanceType, AttendanceStatus } from '../types/attendance';
+import axiosClient from '../api/axiosClient';
+
+// Schema de validation
 const attendanceSchema = z.object({
-    employee: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== 0, 'Employé requis'),
+    employee: z.string().min(1, 'Employé requis'),
     date: z.string().min(1, 'Date requise'),
-    time_in: z.string().optional(),
-    time_out: z.string().optional(),
-    status: z.string().min(1, 'Statut requis'),
+    check_in: z.string().optional(),
+    check_out: z.string().optional(),
+    status: z.enum(['present', 'absent', 'late', 'excused'] as const),
+    notes: z.string().optional()
 });
 
-type AttendanceFormData = z.infer<typeof attendanceSchema>;
+type AttendanceFormValues = z.infer<typeof attendanceSchema>;
 
 const Attendance: React.FC = () => {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { user } = useAuthStore();
+    const isEmployee = user?.role === 'employe';
     const queryClient = useQueryClient();
-    const { register, handleSubmit, reset, formState: { errors } } = useForm<AttendanceFormData>({
-        resolver: zodResolver(attendanceSchema),
+
+    // State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const [selectedAttendance, setSelectedAttendance] = useState<AttendanceType | null>(null);
+    const [exportLoading, setExportLoading] = useState(false);
+
+    // Forms
+    const { register, handleSubmit, reset, formState: { errors } } = useForm<AttendanceFormValues>({
+        resolver: zodResolver(attendanceSchema)
     });
 
-    const today = getTodayDate();
-    const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
+    const { register: registerJustify, handleSubmit: handleSubmitJustify, reset: resetJustify } = useForm<{ notes: string }>();
 
-    const { data: attendances, isLoading } = useQuery<AttendanceType[]>({
+    // Queries
+    const { data: attendances, isLoading } = useQuery({
         queryKey: ['attendances'],
-        queryFn: async () => {
-            const response = await axiosClient.get('/api/attendance/');
-            return response.data.results || response.data;
-        },
+        queryFn: () => attendanceService.getAll()
     });
 
-    const { data: employees } = useQuery<Employee[]>({
+    const { data: employees } = useQuery({
         queryKey: ['employees-list'],
         queryFn: async () => {
             const response = await axiosClient.get('/api/employees/');
+            // Gérer la pagination DRF
             return response.data.results || response.data;
         },
+        enabled: !isEmployee
     });
 
-    const mutation = useMutation({
-        mutationFn: (data: AttendanceFormData) => axiosClient.post('/api/attendance/', data),
+    // Mutations
+    const createMutation = useMutation({
+        mutationFn: attendanceService.create,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['attendances'] });
             toast.success('Présence enregistrée');
@@ -58,154 +73,433 @@ const Attendance: React.FC = () => {
             reset();
         },
         onError: (error: any) => {
-            const message = error.response?.data?.detail ||
-                Object.values(error.response?.data || {}).flat().join(', ') ||
-                'Erreur';
-            toast.error(message as string);
+            console.error("Creation error:", error);
+            const data = error.response?.data;
+            if (data && typeof data === 'object') {
+                const messages = Object.entries(data)
+                    .map(([key, value]) => {
+                        const val = Array.isArray(value) ? value.join(', ') : value;
+                        return `${key}: ${val}`;
+                    })
+                    .join('\n');
+                toast.error(messages || 'Erreur de validation');
+            } else {
+                toast.error('Erreur de connexion au serveur');
+            }
         }
     });
 
+    const justifyMutation = useMutation({
+        mutationFn: ({ id, notes }: { id: string; notes: string }) => attendanceService.justify(id, notes),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendances'] });
+            toast.success('Justification envoyée');
+            setIsJustifyModalOpen(false);
+            resetJustify();
+        },
+        onError: (error: any) => toast.error('Erreur lors de la justification')
+    });
+
+    // Handlers
+    const handleExport = async (type: 'daily' | 'monthly' | 'weekly' | 'semester' | 'annual', format: 'pdf' | 'excel', params?: any) => {
+        try {
+            setExportLoading(true);
+            const today = new Date();
+            let response;
+
+            switch (type) {
+                case 'daily':
+                    const dateStr = today.toISOString().split('T')[0];
+                    response = await attendanceService.exportDaily(dateStr, format);
+                    break;
+                case 'monthly':
+                    response = await attendanceService.exportMonthly(today.getMonth() + 1, today.getFullYear(), format);
+                    break;
+                case 'weekly':
+                    const weekDate = today.toISOString().split('T')[0];
+                    response = await attendanceService.exportWeekly(weekDate, format);
+                    break;
+                case 'semester':
+                    const currentSemester = today.getMonth() < 6 ? 1 : 2;
+                    response = await attendanceService.exportSemester(today.getFullYear(), currentSemester as 1 | 2, format);
+                    break;
+                case 'annual':
+                    response = await attendanceService.exportAnnual(today.getFullYear(), format);
+                    break;
+            }
+
+            downloadBlob(response, `export_${type}_${format}`);
+            toast.success('Export téléchargé');
+        } catch (error) {
+            console.error(error);
+            toast.error('Erreur lors de l\'export');
+        } finally {
+            setExportLoading(false);
+        }
+    };
+
+    // Columns
     const columns: DataTableColumn<AttendanceType>[] = [
         {
             key: 'employee',
             label: 'Employé',
             render: (row) => (
-                <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs">
-                        {(row.employee_name || String(row.employee)).charAt(0)}
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                        {(row.employee_name || 'E').charAt(0)}
                     </div>
-                    <span className="font-medium">{row.employee_name || String(row.employee)}</span>
+                    <div>
+                        <div className="font-semibold text-slate-900 dark:text-white">
+                            {row.employee_name || 'Employé'}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                            ID: {row.employee.substring(0, 8)}
+                        </div>
+                    </div>
                 </div>
-            )
+            ),
         },
         {
             key: 'date',
             label: 'Date',
             render: (row) => (
-                <div className="flex items-center text-slate-500 dark:text-gray-400">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {row.date}
+                <div className="flex items-center text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/50 px-3 py-1 rounded-full w-fit text-sm">
+                    <Calendar className="w-3.5 h-3.5 mr-2 text-indigo-500" />
+                    {new Date(row.date).toLocaleDateString()}
                 </div>
             )
         },
         {
-            key: 'time_in',
-            label: 'Arrivée',
-            render: (row) => row.time_in ? (
-                <div className="flex items-center text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md w-fit text-xs font-medium">
-                    <Clock className="w-3 h-3 mr-1.5" />
-                    {row.time_in}
+            key: 'check_in',
+            label: 'Horaires',
+            render: (row) => (
+                <div className="flex flex-col gap-1.5 text-xs">
+                    <span className="flex items-center text-emerald-700 dark:text-emerald-400 font-medium">
+                        <Clock className="w-3.5 h-3.5 mr-1.5" />
+                        {row.check_in ? row.check_in.slice(0, 5) : '--:--'}
+                    </span>
+                    <span className="flex items-center text-amber-700 dark:text-amber-400 font-medium">
+                        <Clock className="w-3.5 h-3.5 mr-1.5" />
+                        {row.check_out ? row.check_out.slice(0, 5) : '--:--'}
+                    </span>
                 </div>
-            ) : '-'
-        },
-        {
-            key: 'time_out',
-            label: 'Départ',
-            render: (row) => row.time_out ? (
-                <div className="flex items-center text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded-md w-fit text-xs font-medium">
-                    <Clock className="w-3 h-3 mr-1.5" />
-                    {row.time_out}
-                </div>
-            ) : '-'
+            )
         },
         {
             key: 'status',
             label: 'Statut',
             render: (row) => {
-                const statusConfig: Record<string, { label: string; color: string }> = {
-                    'present': { label: 'Présent', color: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-400' },
-                    'absent': { label: 'Absent', color: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-400' },
-                    'late': { label: 'Retard', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-400' },
-                    'excused': { label: 'Excusé', color: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-400' }
+                const styles = {
+                    present: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+                    absent: 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800',
+                    late: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800',
+                    excused: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800'
                 };
-                const config = statusConfig[row.status] || { label: row.status, color: 'bg-gray-100 text-gray-800' };
-
+                const labels = {
+                    present: 'Présent', absent: 'Absent', late: 'Retard', excused: 'Excusé'
+                };
                 return (
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${config.color}`}>
-                        {config.label}
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[row.status]}`}>
+                        {labels[row.status]}
                     </span>
                 );
             }
         },
+        {
+            key: 'notes',
+            label: 'Justification',
+            render: (row) => row.notes ? (
+                <div className="group relative">
+                    <div className="max-w-[150px] truncate text-xs text-slate-500 cursor-help flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3" />
+                        {row.notes}
+                    </div>
+                    <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-48 p-2 bg-slate-800 text-white text-xs rounded shadow-lg z-10">
+                        {row.notes}
+                    </div>
+                </div>
+            ) : <span className="text-slate-300">-</span>
+        },
+        {
+            key: 'id',
+            label: 'Actions',
+            render: (row) => (
+                <div className="flex gap-2">
+                    {!isEmployee && (row.status === 'absent' || row.status === 'late') && !row.notes && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50"
+                            onClick={() => {
+                                setSelectedAttendance(row);
+                                setIsJustifyModalOpen(true);
+                            }}
+                            title="Justifier"
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                        </Button>
+                    )}
+                </div>
+            )
+        }
     ];
 
-    const employeeOptions = employees?.map(emp => ({
-        value: String(emp.id),
-        label: `${emp.user?.first_name} ${emp.user?.last_name} - ${emp.position}`
-    })) || [];
-
     return (
-        <div className="space-y-8">
-            {/* Page Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-white/10 pb-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
-                        <UserCheck className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-                        Présences
-                    </h1>
-                    <p className="text-slate-500 dark:text-gray-400 mt-1 ml-11">
-                        Suivez les arrivées et départs de vos collaborateurs en temps réel.
-                    </p>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Header Section */}
+            <div className="relative rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-700 shadow-xl">
+                {/* Background Effects */}
+                <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
                 </div>
-                <div className="flex gap-3">
-                    <ExportButton
-                        label="Quotidien"
-                        formats={['pdf', 'excel', 'csv']}
-                        onExport={(format) => exportService.exportDailyAttendance(today, format as 'pdf' | 'excel' | 'csv')}
-                        variant="outline"
-                        size="sm"
-                    />
-                    <ExportButton
-                        label="Mensuel"
-                        formats={['pdf', 'excel']}
-                        onExport={(format) => exportService.exportMonthlyAttendance(currentMonth, currentYear, format as 'pdf' | 'excel')}
-                        variant="outline"
-                        size="sm"
-                    />
-                    <Button variant="primary" icon={Plus} onClick={() => setIsModalOpen(true)}>
-                        Nouvelle présence
-                    </Button>
+
+                {/* Content */}
+                <div className="relative p-8">
+                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                        <div className="text-white">
+                            <h1 className="text-3xl font-bold flex items-center gap-3">
+                                <UserCheck className="w-8 h-8 text-indigo-200" />
+                                Gestion des Présences
+                            </h1>
+                            <p className="text-indigo-100 mt-2 max-w-xl text-lg opacity-90">
+                                Suivez les temps de travail, gérez les absences et générez vos rapports en un clic.
+                            </p>
+                        </div>
+
+                        {!isEmployee && (
+                            <div className="flex flex-wrap gap-3">
+                                {/* Export Dropdown Menu */}
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:scale-105 border-2 border-white/50"
+                                        disabled={exportLoading}
+                                    >
+                                        {exportLoading ? (
+                                            <>
+                                                <Loader2 className="w-5 h-5 animate-spin" />
+                                                <span>Export en cours...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download className="w-5 h-5" />
+                                                <span>Exporter</span>
+                                                <ChevronDown className={`w-4 h-4 transition-transform ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {/* Export Dropdown Panel */}
+                                    {isExportMenuOpen && (
+                                        <div className="absolute top-full mt-2 right-0 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="p-3">
+                                                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                                                    <BarChart3 className="w-4 h-4 text-indigo-600" />
+                                                    Rapports de Présence
+                                                </h3>
+
+                                                <div className="space-y-1.5">
+                                                    {/* Daily Export */}
+                                                    <div className="group p-2 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                                                <Calendar className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Quotidien</h4>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => { handleExport('daily', 'pdf'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { handleExport('daily', 'excel'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export Excel"
+                                                                >
+                                                                    <FileSpreadsheet className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Monthly Export */}
+                                                    <div className="group p-2 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-950/30 transition-all">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                                                                <CalendarRange className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Mensuel</h4>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => { handleExport('monthly', 'pdf'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { handleExport('monthly', 'excel'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export Excel"
+                                                                >
+                                                                    <FileSpreadsheet className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Weekly Export */}
+                                                    <div className="group p-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/30 transition-all">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 rounded bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400">
+                                                                <Calendar className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Hebdomadaire</h4>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => { handleExport('weekly', 'pdf'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Semester Export */}
+                                                    <div className="group p-2 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                                                                <CalendarRange className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Semestriel</h4>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => { handleExport('semester', 'pdf'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Annual Export */}
+                                                    <div className="group p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="p-1.5 rounded bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400">
+                                                                <BarChart3 className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Annuel</h4>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <button
+                                                                    onClick={() => { handleExport('annual', 'pdf'); setIsExportMenuOpen(false); }}
+                                                                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 rounded flex items-center gap-1 transition-colors"
+                                                                    title="Export PDF"
+                                                                >
+                                                                    <FileText className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                                    💡 D'autres rapports arrivent bientôt
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Button
+                                    className="bg-white text-indigo-600 hover:bg-indigo-50 border-none shadow-lg font-semibold"
+                                    icon={Plus}
+                                    onClick={() => setIsModalOpen(true)}
+                                >
+                                    Nouvelle présence
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Data Table */}
-            <DataTable columns={columns} data={attendances} isLoading={isLoading} />
+            {/* Table Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+                    <h3 className="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Historique des pointages
+                    </h3>
+                </div>
+                <DataTable
+                    columns={columns}
+                    data={attendances || []}
+                    isLoading={isLoading}
+                />
+            </div>
 
-            {/* Modal */}
-            <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Enregistrer présence">
-                <form onSubmit={handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
+            {/* Modal Creation */}
+            <ModalForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle Présence">
+                <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="space-y-5">
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800 mb-4">
+                        <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 mb-1 flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            Information
+                        </h4>
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400">
+                            Veuillez remplir les informations avec précision. Les heures doivent être au format HH:MM.
+                        </p>
+                    </div>
+
                     <Select
                         label="Employé"
                         {...register('employee')}
-                        options={[
-                            { value: '', label: 'Sélectionner un employé' },
-                            ...employeeOptions
-                        ]}
+                        options={employees?.map((e: any) => ({
+                            value: e.id,
+                            label: `${e.user.first_name} ${e.user.last_name}`
+                        })) || []}
                         error={errors.employee?.message}
-                        required
                     />
 
                     <Input
-                        label="Date"
                         type="date"
+                        label="Date"
                         {...register('date')}
-                        icon={<Calendar className="w-5 h-5" />}
                         error={errors.date?.message}
-                        required
                     />
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Heure d'arrivée"
                             type="time"
-                            {...register('time_in')}
-                            icon={<Clock className="w-5 h-5" />}
+                            label="Heure d'arrivée"
+                            {...register('check_in')}
+                            error={errors.check_in?.message}
                         />
                         <Input
-                            label="Heure de départ"
                             type="time"
-                            {...register('time_out')}
-                            icon={<Clock className="w-5 h-5" />}
+                            label="Heure de départ"
+                            {...register('check_out')}
+                            error={errors.check_out?.message}
                         />
                     </div>
 
@@ -213,31 +507,51 @@ const Attendance: React.FC = () => {
                         label="Statut"
                         {...register('status')}
                         options={[
-                            { value: '', label: 'Sélectionner' },
                             { value: 'present', label: 'Présent' },
-                            { value: 'absent', label: 'Absent' },
                             { value: 'late', label: 'Retard' },
+                            { value: 'absent', label: 'Absent' },
                             { value: 'excused', label: 'Excusé' }
                         ]}
                         error={errors.status?.message}
-                        required
                     />
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setIsModalOpen(false)}
-                        >
-                            Annuler
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            loading={mutation.isPending}
-                        >
-                            {mutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
-                        </Button>
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Annuler</Button>
+                        <Button type="submit" variant="primary" loading={createMutation.isPending}>Enregistrer</Button>
+                    </div>
+                </form>
+            </ModalForm>
+
+            {/* Modal Justification */}
+            <ModalForm isOpen={isJustifyModalOpen} onClose={() => setIsJustifyModalOpen(false)} title="Justifier l'absence">
+                <form onSubmit={handleSubmitJustify((data) => {
+                    if (selectedAttendance) {
+                        justifyMutation.mutate({ id: selectedAttendance.id, notes: data.notes });
+                    }
+                })} className="space-y-4">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-100 dark:border-amber-800 mb-4">
+                        <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1 flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            Justification
+                        </h4>
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Expliquez la raison de l'absence ou du retard. Cette note sera visible par l'administration.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Motif / Justification</label>
+                        <textarea
+                            {...registerJustify('notes')}
+                            className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-3 text-sm focus:ring-2 focus:ring-indigo-500 min-h-[100px]"
+                            placeholder="Ex: Problème de transport, rendez-vous médical..."
+                            required
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="ghost" onClick={() => setIsJustifyModalOpen(false)}>Annuler</Button>
+                        <Button type="submit" variant="primary" loading={justifyMutation.isPending}>Envoyer la justification</Button>
                     </div>
                 </form>
             </ModalForm>

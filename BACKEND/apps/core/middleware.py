@@ -33,6 +33,8 @@ class CompanyIsolationMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        print(f"DEBUG MIDDLEWARE: Path={request.path}, Method={request.method}, User={request.user}, Authenticated={request.user.is_authenticated}")
+        
         # Liste des URLs publiques qui ne nécessitent pas d'entreprise
         public_urls = [
             '/api/auth/login/',
@@ -52,11 +54,15 @@ class CompanyIsolationMiddleware:
             # Vérifier si l'URL est publique
             is_public = any(request.path.startswith(url) for url in public_urls)
             
+            print(f"DEBUG MIDDLEWARE: is_public={is_public}, has_company={hasattr(request.user, 'company')}, company={getattr(request.user, 'company', None)}")
+            
             if not is_public and request.path.startswith('/api/'):
                 if not hasattr(request.user, 'company') or request.user.company is None:
+                    print("DEBUG MIDDLEWARE: Returning 403 - No company")
                     return JsonResponse({
                         'error': 'Utilisateur non associé à une entreprise'
                     }, status=403)
 
         response = self.get_response(request)
+        print(f"DEBUG MIDDLEWARE: Response status={response.status_code}")
         return response

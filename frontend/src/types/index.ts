@@ -1,12 +1,26 @@
 // Types globaux pour l'application
+export interface Company {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    website?: string;
+    plan?: 'free' | 'startup' | 'enterprise';
+    subscription_status?: 'trial' | 'active' | 'past_due' | 'cancelled' | 'expired';
+    trial_end_date?: string;
+    is_active?: boolean;
+}
+
 export interface User {
     id: number;
     email: string;
     first_name: string;
     last_name: string;
     role: 'owner' | 'admin' | 'rh' | 'manager' | 'employe';
-    company: number;
+    company: Company;
     has_employee_profile?: boolean;
+    is_saas_owner?: boolean;
 }
 
 export interface Employee {
@@ -31,6 +45,7 @@ export interface Attendance {
     time_in?: string;
     time_out?: string;
     status: 'present' | 'absent' | 'late' | 'excused';
+    notes?: string;
 }
 
 export interface Leave {
@@ -66,15 +81,6 @@ export interface Document {
     file: string;
     description?: string;
     created_at: string;
-}
-
-export interface Company {
-    id: number;
-    name: string;
-    email: string;
-    phone: string;
-    address: string;
-    website?: string;
 }
 
 export interface DashboardStats {

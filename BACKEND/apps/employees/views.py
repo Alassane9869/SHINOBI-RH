@@ -29,7 +29,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     search_fields = ['user__first_name', 'user__last_name', 'position', 'department']
 
     def get_queryset(self):
-        return Employee.objects.filter(company=self.request.user.company)
+        return Employee.objects.filter(company=self.request.user.company).order_by('user__last_name', 'user__first_name')
 
     def perform_create(self, serializer):
         serializer.save(company=self.request.user.company)
@@ -434,28 +434,40 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             return exporter.export()
         
         else:  # PDF (défaut)
-            context = {
-                'employee': employee,
-                'years_of_service': years_of_service,
-                'leaves': leaves,
-                'attendance_summary': attendance_summary,
-                'payrolls': payrolls,
-                'documents': documents,
-                'branding': branding
+            from apps.pdf_templates.generators.employee_file import EmployeeFileGenerator
+            
+            # Préparer les données pour le générateur
+            data = {
+                'employee_name': f"{employee.user.first_name} {employee.user.last_name}",
+                'employee_id': str(employee.id)[:8],
+                'personal_info': {
+                    'birth_date': 'N/A',
+                    'birth_place': 'N/A',
+                    'nationality': 'N/A',
+                    'marital_status': 'N/A',
+                    'children_count': 0,
+                },
+                'contact_info': {
+                    'address': employee.address or 'N/A',
+                    'phone': employee.phone or 'N/A',
+                    'email': employee.user.email,
+                    'emergency_contact': 'N/A',
+                },
+                'professional_info': {
+                    'position': employee.position,
+                    'department': employee.department or 'N/A',
+                    'hire_date': employee.date_hired.strftime('%d/%m/%Y') if employee.date_hired else 'N/A',
+                    'contract_type': 'CDI',
+                    'base_salary': float(employee.base_salary),
+                },
+                'documents': [
+                    {'type': doc.document_type if hasattr(doc, 'document_type') else 'Document', 
+                     'date': doc.created_at.strftime('%d/%m/%Y') if hasattr(doc, 'created_at') else 'N/A'}
+                    for doc in documents
+                ] if documents else []
             }
             
-            exporter = WeasyPrintPDFExporter(
-                data=[],
-                filename=f"dossier_complet_{employee.user.last_name}_{employee.user.first_name}",
-                template_name='exports/pdf/employee_file.html',
-                title=f"Dossier Employé - {employee.user.get_full_name()}",
-                subtitle=f"Matricule : {str(employee.id)[:8]}",
-                document_id=str(employee.id),
-                document_type='employee_file',
-                company=request.user.company,
-                user=request.user,
-                context=context
-            )
+            generator = EmployeeFileGenerator(company=request.user.company)
             
             # Logger l'export
             ExportLog.objects.create(
@@ -470,29 +482,29 @@ class EmployeeViewSet(viewsets.ModelViewSet):
                 completed_at=timezone.now()
             )
             
-            return exporter.export()
+            filename = f"dossier_complet_{employee.user.last_name}_{employee.user.first_name}"
+            return generator.generate(data, filename)
     
     @action(detail=True, methods=['get'], url_path='export/work-certificate-advanced')
     def export_work_certificate_advanced(self, request, pk=None):
         """
-        Génère une attestation de travail officielle avec le template amélioré.
+        Génère une attestation de travail avec ReportLab.
         """
+        from apps.pdf_templates.generators.certificate import CertificateGenerator
+        
         employee = self.get_object()
         
-        context = {
-            'employee': employee,
+        data = {
+            'employee_name': f"{employee.user.first_name} {employee.user.last_name}",
+            'employee_id': str(employee.id)[:8],
+            'position': employee.position,
+            'department': employee.department or 'N/A',
+            'hire_date': employee.date_hired,
         }
         
-        exporter = WeasyPrintPDFExporter(
-            data=[],
-            filename=f"attestation_travail_{employee.user.last_name}_{employee.user.first_name}",
-            template_name='exports/pdf/employee_file_simple.html',
-            title="Attestation de Travail",
-            document_id=str(employee.id),
-            document_type='work_certificate',
+        generator = CertificateGenerator(
             company=request.user.company,
-            user=request.user,
-            context=context
+            certificate_type='work_certificate'
         )
         
         # Logger l'export
@@ -508,7 +520,8 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             completed_at=timezone.now()
         )
         
-        return exporter.export()
+        filename = f"attestation_travail_{employee.user.last_name}_{employee.user.first_name}"
+        return generator.generate(data, filename)
     
     @action(detail=False, methods=['get'], url_path='export/list-advanced')
     def export_list_advanced(self, request):
@@ -584,15 +597,16 @@ class EmployeeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export/transfer-letter-advanced')
     def export_transfer_letter_advanced(self, request, pk=None):
         """
-        Génère une lettre de mutation officielle avec template avancé.
+        Génère une lettre de mutation avec ReportLab.
         
         Query params:
             - new_position: Nouveau poste
             - new_department: Nouveau département
             - new_salary: Nouveau salaire (optionnel)
             - effective_date: Date d'effet (YYYY-MM-DD)
-            - new_location: Nouveau lieu (optionnel)
         """
+        from apps.pdf_templates.generators.contract import ContractGenerator
+        
         employee = self.get_object()
         
         # Récupérer les paramètres
@@ -600,7 +614,6 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         new_department = request.query_params.get('new_department', employee.department)
         new_salary_str = request.query_params.get('new_salary')
         effective_date_str = request.query_params.get('effective_date')
-        new_location = request.query_params.get('new_location')
         
         # Parser la date
         if effective_date_str:
@@ -609,39 +622,26 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             except ValueError:
                 return Response({'error': 'Format de date invalide (YYYY-MM-DD requis)'}, status=400)
         else:
-            effective_date = date.today() + timedelta(days=30)  # Par défaut  1 mois
+            effective_date = date.today() + timedelta(days=30)
         
-        salary_change = False
         new_salary = employee.base_salary
         if new_salary_str:
             try:
                 new_salary = float(new_salary_str)
-                salary_change = True
             except ValueError:
                 pass
         
-        context = {
-            'employee': employee,
-            'current_position': employee.position,
-            'current_department': employee.department,
+        data = {
+            'employee_name': f"{employee.user.first_name} {employee.user.last_name}",
             'new_position': new_position,
             'new_department': new_department,
-            'new_salary': new_salary,
-            'salary_change': salary_change,
-            'effective_date': effective_date,
-            'new_location': new_location
+            'effective_date': effective_date.strftime('%d/%m/%Y'),
+            'new_salary': float(new_salary),
         }
         
-        exporter = WeasyPrintPDFExporter(
-            data=[],
-            filename=f"lettre_mutation_{employee.user.last_name}_{employee.user.first_name}",
-            template_name='exports/pdf/employee_file_simple.html',
-            title="Lettre de Mutation",
-            document_id=str(employee.id),
-            document_type='transfer_letter',
+        generator = ContractGenerator(
             company=request.user.company,
-            user=request.user,
-            context=context
+            contract_type='transfer_letter'
         )
         
         # Logger l'export
@@ -657,19 +657,20 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             completed_at=timezone.now()
         )
         
-        return exporter.export()
-    
+        filename = f"lettre_mutation_{employee.user.last_name}_{employee.user.first_name}"
+        return generator.generate(data, filename)
+
     @action(detail=True, methods=['get'], url_path='export/termination-letter-advanced')
     def export_termination_letter_advanced(self, request, pk=None):
         """
-        Génère une lettre de fin de contrat officielle.
+        Génère une lettre de fin de contrat avec ReportLab.
         
         Query params:
             - end_date: Date de fin (YYYY-MM-DD)
             - termination_type: resignation, dismissal, end_of_contract, mutual_agreement
-            - notice_period: Durée du préavis en jours
-            - severance_pay: Indemnité (optionnel)
         """
+        from apps.pdf_templates.generators.contract import ContractGenerator
+        
         employee = self.get_object()
         
         end_date_str = request.query_params.get('end_date')
@@ -682,42 +683,25 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             end_date = date.today() + timedelta(days=30)
         
         termination_type = request.query_params.get('termination_type', 'end_of_contract')
-        notice_period = request.query_params.get('notice_period', 30)
-        severance_pay_str = request.query_params.get('severance_pay')
         
-        severance_pay = None
-        if severance_pay_str:
-            try:
-                severance_pay = float(severance_pay_str)
-            except ValueError:
-                pass
+        # Mapper le type de licenciement vers une raison lisible
+        termination_reasons = {
+            'resignation': 'démission',
+            'dismissal': 'licenciement',
+            'end_of_contract': 'fin de contrat',
+            'mutual_agreement': 'rupture conventionnelle'
+        }
+        termination_reason = termination_reasons.get(termination_type, 'raisons économiques')
         
-        # Calculer l'ancienneté
-        years_of_service = 0
-        if employee.date_hired:
-            delta = end_date - employee.date_hired
-            years_of_service = delta.days // 365
-        
-        context = {
-            'employee': employee,
-            'end_date': end_date,
-            'termination_type': termination_type,
-            'notice_period': notice_period,
-            'notice_end_date': end_date - timedelta(days=int(notice_period)),
-            'severance_pay': severance_pay,
-            'years_of_service': years_of_service
+        data = {
+            'employee_name': f"{employee.user.first_name} {employee.user.last_name}",
+            'last_day': end_date.strftime('%d/%m/%Y'),
+            'termination_reason': termination_reason,
         }
         
-        exporter = WeasyPrintPDFExporter(
-            data=[],
-            filename=f"lettre_fin_contrat_{employee.user.last_name}_{employee.user.first_name}",
-            template_name='exports/pdf/employee_file_simple.html',
-            title="Lettre de Fin de Contrat",
-            document_id=str(employee.id),
-            document_type='termination_letter',
+        generator = ContractGenerator(
             company=request.user.company,
-            user=request.user,
-            context=context
+            contract_type='termination_letter'
         )
         
         # Logger l'export
@@ -726,50 +710,42 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             user=request.user,
             export_type='pdf',
             module='employees',
-            document_name=f"Lettre fin de contrat {employee.user.get_full_name()}",
-            parameters={'employee_id': str(employee.id), 'type': termination_type},
+            document_name=f"Lettre de fin de contrat {employee.user.get_full_name()}",
+            parameters={'employee_id': str(employee.id), 'termination_type': termination_type},
             status='completed',
             started_at=timezone.now(),
             completed_at=timezone.now()
         )
         
-        return exporter.export()
-    
+        filename = f"lettre_fin_contrat_{employee.user.last_name}_{employee.user.first_name}"
+        return generator.generate(data, filename)
+
     @action(detail=True, methods=['get'], url_path='export/work-contract-advanced')
     def export_work_contract_advanced(self, request, pk=None):
         """
-        Génère un contrat de travail complet (CDI/CDD/Stage).
+        Génère un contrat de travail avec ReportLab.
         
         Query params:
             - contract_type: CDI, CDD, STAGE
             - start_date: Date de début (YYYY-MM-DD)
-            - end_date: Date de fin pour CDD (YYYY-MM-DD)
             - salary: Salaire (défaut: base_salary de l'employé)
-            - probation_period: Durée période d'essai en mois
         """
+        from apps.pdf_templates.generators.contract import ContractGenerator
+        
         employee = self.get_object()
         
         contract_type = request.query_params.get('contract_type', 'CDI')
         start_date_str = request.query_params.get('start_date')
-        end_date_str = request.query_params.get('end_date')
         salary_str = request.query_params.get('salary')
-        probation_period = request.query_params.get('probation_period', 3)
         
-        # Dates
+        # Date de début
         if start_date_str:
             try:
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
             except ValueError:
-                return Response({'error': 'Format de date invalide'}, status=400)
+                start_date = employee.date_hired or date.today()
         else:
             start_date = employee.date_hired or date.today()
-        
-        end_date = None
-        if contract_type == 'CDD' and end_date_str:
-            try:
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            except ValueError:
-                pass
         
         # Salaire
         salary = employee.base_salary
@@ -779,30 +755,22 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
         
-        context = {
-            'employee': employee,
-            'contract_type': contract_type,
-            'start_date': start_date,
-            'end_date': end_date,
-            'salary': salary,
-            'probation_period': probation_period,
-            'weekly_hours': 35,
-            'working_days': 5,
-            'work_schedule': '09h00 - 17h00 du lundi au vendredi',
-            'work_location': request.user.company.address,
-            'notice_period': 1 if contract_type == 'CDI' else None
+        data = {
+            'employee_name': f"{employee.user.first_name} {employee.user.last_name}",
+            'birth_date': 'N/A',
+            'employee_address': 'N/A',
+            'position': employee.position,
+            'department': employee.department or 'N/A',
+            'start_date': start_date.strftime('%d/%m/%Y'),
+            'salary': float(salary),
+            'contract_duration': 'indéterminée' if contract_type == 'CDI' else 'déterminée',
+            'working_hours': '40',
+            'trial_period': '3',
         }
         
-        exporter = WeasyPrintPDFExporter(
-            data=[],
-            filename=f"contrat_travail_{employee.user.last_name}_{employee.user.first_name}",
-            template_name='exports/pdf/work_contract.html',
-            title=f"Contrat de Travail - {contract_type}",
-            document_id=str(employee.id),
-            document_type='work_contract',
+        generator = ContractGenerator(
             company=request.user.company,
-            user=request.user,
-            context=context
+            contract_type='work_contract'
         )
         
         # Logger l'export
@@ -818,7 +786,8 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             completed_at=timezone.now()
         )
         
-        return exporter.export()
+        filename = f"contrat_travail_{employee.user.last_name}_{employee.user.first_name}"
+        return generator.generate(data, filename)
     
     # ============= NOUVEAUX EXPORTS MULTI-FORMAT =============
     

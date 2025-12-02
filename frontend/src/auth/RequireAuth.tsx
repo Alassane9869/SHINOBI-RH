@@ -20,6 +20,21 @@ const RequireAuth: React.FC<RequireAuthProps> = ({ children, allowedRoles = [] }
         return <Navigate to="/dashboard" replace />;
     }
 
+    // Vérifier l'abonnement pour les propriétaires
+    if (user?.role === 'owner' || user?.role === 'admin') {
+        const subscriptionStatus = user.company?.subscription_status;
+        const isBillingPage = ['/pricing', '/checkout', '/subscription'].some(path => location.pathname.startsWith(path));
+
+        // Si pas d'abonnement actif et pas sur une page de facturation
+        if ((!subscriptionStatus || !['active', 'trial'].includes(subscriptionStatus)) && !isBillingPage) {
+            // Autoriser l'accès aux pages SaaS pour le Super Admin (Owner SaaS)
+            if (user.is_saas_owner) {
+                return <>{children}</>;
+            }
+            return <Navigate to="/pricing" replace />;
+        }
+    }
+
     return <>{children}</>;
 };
 

@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     'apps.documents',
     'apps.dashboard',
     'apps.notifications',
+    'apps.pdf_templates',
+    'billing',  # Payment & Subscription system
 ]
 
 MIDDLEWARE = [

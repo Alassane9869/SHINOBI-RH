@@ -6,7 +6,7 @@
         margin: 20px 0;
         padding: 15px;
         background-color: #f8f9fa;
-        border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};
+        border-left: 4px solid #4472C4;
     }
     .stat-table {
         width: 100%;
@@ -25,16 +25,16 @@
         margin: 10px 0;
     }
     .table-header {
-        background-color: {{ branding.primary_color|default:'#4472C4' }};
+        background-color: #4472C4;
         color: white;
     }
-    .status-approved { color: {{ branding.secondary_color|default:'#2e7d32' }}; font-weight: bold; }
-    .status-pending { color: {{ branding.accent_color|default:'#ed6c02' }}; font-weight: bold; }
+    .status-approved { color: #2e7d32; font-weight: bold; }
+    .status-pending { color: #ed6c02; font-weight: bold; }
     .status-rejected { color: #d32f2f; font-weight: bold; }
 </style>
 
 <!-- Informations -->
-<div class="info-box">
+<div class="info-box" style="border-left-color: {{ branding.primary_color|default:'#4472C4' }};">
     <h2 style="margin-top: 0; color: {{ branding.primary_color|default:'#4472C4' }};">Informations</h2>
     <p><strong>Employé :</strong> {{ employee.user.get_full_name }}</p>
     <p><strong>Département :</strong> {{ employee.department|default:"-" }}</p>
@@ -63,7 +63,7 @@
 <h2 style="color: {{ branding.primary_color|default:'#4472C4' }}; margin-top: 30px;">Détails des Congés</h2>
 
 <table>
-    <thead class="table-header">
+    <thead class="table-header" style="background-color: {{ branding.primary_color|default:'#4472C4' }};">
         <tr>
             <th style="width: 20%;">Type</th>
             <th style="width: 15%;">Début</th>
@@ -82,9 +82,9 @@
             <td>{{ leave.end_date|timeuntil:leave.start_date }}</td>
             <td>
                 {% if leave.status == 'approved' %}
-                    <span class="status-approved">Approuvé</span>
+                    <span class="status-approved" style="color: {{ branding.secondary_color|default:'#2e7d32' }};">Approuvé</span>
                 {% elif leave.status == 'pending' %}
-                    <span class="status-pending">En attente</span>
+                    <span class="status-pending" style="color: {{ branding.accent_color|default:'#ed6c02' }};">En attente</span>
                 {% else %}
                     <span class="status-rejected">Refusé</span>
                 {% endif %}

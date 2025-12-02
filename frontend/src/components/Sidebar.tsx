@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../auth/AuthStore';
 import { useSidebar } from '../context/SidebarContext';
+import Logo from './Logo';
 
 interface MenuItem {
     path: string;
@@ -25,6 +26,7 @@ interface MenuItem {
     label: string;
     roles: string[];
     color: string;
+    submenu?: { path: string; label: string }[];
 }
 
 const Sidebar: React.FC = () => {
@@ -36,8 +38,18 @@ const Sidebar: React.FC = () => {
         // Menu spécifique Owner
         { path: '/saas', icon: Shield, label: 'SaaS Admin', roles: ['owner'], color: 'from-purple-600 to-indigo-600' },
         { path: '/saas/companies', icon: Building2, label: 'Entreprises', roles: ['owner'], color: 'from-blue-600 to-cyan-600' },
+        { path: '/saas/subscriptions-manager', icon: Users, label: 'Gestion Abonnements', roles: ['owner'], color: 'from-indigo-600 to-purple-600' },
         { path: '/saas/analytics', icon: Activity, label: 'Analytics', roles: ['owner'], color: 'from-green-600 to-emerald-600' },
-        { path: '/saas/billing', icon: CreditCard, label: 'Facturation', roles: ['owner'], color: 'from-emerald-600 to-teal-600' },
+
+        // Billing Section
+        { path: '/saas/billing', icon: CreditCard, label: '💰 Billing Dashboard', roles: ['owner'], color: 'from-emerald-600 to-teal-600' },
+        { path: '/saas/billing/subscriptions', icon: Users, label: '📋 Abonnements', roles: ['owner'], color: 'from-blue-600 to-indigo-600' },
+        { path: '/saas/billing/transactions', icon: DollarSign, label: '💳 Transactions', roles: ['owner'], color: 'from-orange-600 to-red-600' },
+        { path: '/saas/billing/invoices', icon: FileText, label: '📄 Factures', roles: ['owner'], color: 'from-teal-600 to-cyan-600' },
+        { path: '/saas/billing/plans', icon: FileText, label: '📦 Gestion Plans', roles: ['owner'], color: 'from-indigo-600 to-blue-600' },
+        { path: '/saas/billing/promo-codes', icon: Sparkles, label: '🎟️ Codes Promo', roles: ['owner'], color: 'from-pink-600 to-rose-600' },
+        { path: '/saas/billing/config', icon: Settings, label: '⚙️ Config Paiements', roles: ['owner'], color: 'from-purple-600 to-pink-600' },
+
         { path: '/users', icon: Users, label: 'Tous les Utilisateurs', roles: ['owner'], color: 'from-purple-500 to-pink-500' },
         { path: '/saas/monitoring', icon: Activity, label: 'Monitoring', roles: ['owner'], color: 'from-orange-600 to-red-600' },
         { path: '/saas/logs', icon: FileText, label: 'Logs Système', roles: ['owner'], color: 'from-slate-600 to-gray-600' },
@@ -47,7 +59,7 @@ const Sidebar: React.FC = () => {
         { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'rh', 'manager', 'employe'], color: 'from-blue-500 to-cyan-500' },
         { path: '/users', icon: Users, label: 'Utilisateurs', roles: ['admin', 'rh'], color: 'from-purple-500 to-pink-500' },
         { path: '/employees', icon: Users, label: 'Employés', roles: ['admin', 'rh'], color: 'from-indigo-500 to-purple-500' },
-        { path: '/attendance', icon: Calendar, label: 'Présences', roles: ['admin', 'rh', 'manager'], color: 'from-green-500 to-emerald-500' },
+        { path: '/attendance', icon: Calendar, label: 'Présences', roles: ['admin', 'rh', 'manager', 'employe'], color: 'from-green-500 to-emerald-500' },
         { path: '/leaves', icon: Briefcase, label: 'Congés', roles: ['admin', 'rh', 'manager', 'employe'], color: 'from-amber-500 to-orange-500' },
         { path: '/payroll', icon: DollarSign, label: 'Paie', roles: ['admin', 'rh'], color: 'from-rose-500 to-pink-500' },
         { path: '/documents', icon: FileText, label: 'Documents', roles: ['admin', 'rh', 'manager'], color: 'from-teal-500 to-cyan-500' },
@@ -82,16 +94,8 @@ const Sidebar: React.FC = () => {
                 {/* Logo */}
                 <div className="relative z-10 h-20 flex items-center justify-between px-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md">
                     <Link to={user?.role === 'owner' ? '/saas' : '/dashboard'} className="flex items-center gap-3 group">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                            <div className="relative w-10 h-10 bg-gradient-to-br from-primary-600 to-accent-500 rounded-xl flex items-center justify-center shadow-glow group-hover:shadow-glow-accent transition-all duration-300 group-hover:scale-110">
-                                <Sparkles className="w-5 h-5 text-white" />
-                            </div>
-                        </div>
+                        <Logo size="md" />
                         <div>
-                            <span className="font-bold text-lg bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent">
-                                SHINOBI RH
-                            </span>
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Premium Edition</p>
                         </div>
                     </Link>

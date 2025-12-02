@@ -195,7 +195,7 @@ export const exportMonthlyAttendance = async (
     format: 'pdf' | 'excel' = 'pdf'
 ): Promise<void> => {
     await downloadFile(
-        `/attendance/export/monthly-advanced/`,
+        `/api/attendance/export/monthly-advanced/`,
         `presence_mensuelle_${month}_${year}.${format === 'excel' ? 'xlsx' : 'pdf'}`,
         { month, year, format }
     );

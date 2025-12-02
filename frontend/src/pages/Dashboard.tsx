@@ -8,6 +8,7 @@ import { DashboardStats } from '../types';
 import { Card, Button, Badge } from '../components/ui';
 import ExportMenu from '../components/ExportMenu';
 import { motion } from 'framer-motion';
+import useAuthStore from '../auth/AuthStore';
 
 interface ChartData {
     name: string;
@@ -16,6 +17,8 @@ interface ChartData {
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuthStore();
+    const isEmployee = user?.role === 'employe';
     const { data: stats, isLoading } = useQuery<DashboardStats>({
         queryKey: ['dashboard-stats'],
         queryFn: async () => {
@@ -188,42 +191,44 @@ const Dashboard: React.FC = () => {
                     </Card>
                 </motion.div>
 
-                {/* Quick Actions */}
-                <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.6 }}
-                >
-                    <Card>
-                        <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent mb-6">
-                            Actions Rapides
-                        </h2>
-                        <div className="space-y-3">
-                            {[
-                                { icon: Users, label: 'Ajouter un employé', color: 'from-blue-500 to-cyan-500', delay: 0.7, path: '/employees' },
-                                { icon: Briefcase, label: 'Gérer les congés', color: 'from-amber-500 to-orange-500', delay: 0.8, path: '/leaves' },
-                                { icon: DollarSign, label: 'Générer la paie', color: 'from-purple-500 to-pink-500', delay: 0.9, path: '/payroll' },
-                            ].map((action, index) => (
-                                <motion.button
-                                    key={index}
-                                    onClick={() => navigate(action.path)}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: action.delay }}
-                                    className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-transparent bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 dark:hover:from-primary-950 dark:hover:to-accent-950 transition-all group hover:shadow-lg hover:scale-105 active:scale-95"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2.5 rounded-lg bg-gradient-to-br ${action.color} shadow-lg group-hover:scale-110 transition-transform`}>
-                                            <action.icon className="w-5 h-5 text-white" />
+                {/* Quick Actions - Hidden for employees */}
+                {!isEmployee && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 }}
+                    >
+                        <Card>
+                            <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-primary-600 dark:from-white dark:to-primary-400 bg-clip-text text-transparent mb-6">
+                                Actions Rapides
+                            </h2>
+                            <div className="space-y-3">
+                                {[
+                                    { icon: Users, label: 'Ajouter un employé', color: 'from-blue-500 to-cyan-500', delay: 0.7, path: '/employees' },
+                                    { icon: Briefcase, label: 'Gérer les congés', color: 'from-amber-500 to-orange-500', delay: 0.8, path: '/leaves' },
+                                    { icon: DollarSign, label: 'Générer la paie', color: 'from-purple-500 to-pink-500', delay: 0.9, path: '/payroll' },
+                                ].map((action, index) => (
+                                    <motion.button
+                                        key={index}
+                                        onClick={() => navigate(action.path)}
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: action.delay }}
+                                        className="w-full flex items-center justify-between p-4 rounded-xl border-2 border-gray-200 dark:border-gray-700 hover:border-transparent bg-gradient-to-r hover:from-primary-50 hover:to-accent-50 dark:hover:from-primary-950 dark:hover:to-accent-950 transition-all group hover:shadow-lg hover:scale-105 active:scale-95"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-2.5 rounded-lg bg-gradient-to-br ${action.color} shadow-lg group-hover:scale-110 transition-transform`}>
+                                                <action.icon className="w-5 h-5 text-white" />
+                                            </div>
+                                            <span className="font-semibold text-gray-700 dark:text-gray-200">{action.label}</span>
                                         </div>
-                                        <span className="font-semibold text-gray-700 dark:text-gray-200">{action.label}</span>
-                                    </div>
-                                    <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
-                                </motion.button>
-                            ))}
-                        </div>
-                    </Card>
-                </motion.div>
+                                        <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </Card>
+                    </motion.div>
+                )}
             </div>
         </div>
     );

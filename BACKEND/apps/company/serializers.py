@@ -2,10 +2,23 @@ from rest_framework import serializers
 from .models import Company
 
 class CompanySerializer(serializers.ModelSerializer):
+    subscription_status = serializers.SerializerMethodField()
+    trial_end_date = serializers.SerializerMethodField()
+
     class Meta:
         model = Company
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+    def get_subscription_status(self, obj):
+        if hasattr(obj, 'subscription'):
+            return obj.subscription.status
+        return None
+
+    def get_trial_end_date(self, obj):
+        if hasattr(obj, 'subscription') and obj.subscription.trial_end_date:
+            return obj.subscription.trial_end_date.isoformat()
+        return None
 
 class CompanyRegistrationSerializer(serializers.ModelSerializer):
     """

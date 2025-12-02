@@ -13,7 +13,7 @@ const Settings: React.FC = () => {
     const { data: company, isLoading } = useQuery<Company>({
         queryKey: ['company'],
         queryFn: async () => {
-            const response = await axiosClient.get<Company>(`/api/company/${user?.company}/`);
+            const response = await axiosClient.get<Company>(`/api/company/${user?.company?.id}/`);
             return response.data;
         },
         enabled: !!user?.company,

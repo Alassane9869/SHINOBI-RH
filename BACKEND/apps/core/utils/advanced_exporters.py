@@ -143,6 +143,7 @@ class WeasyPrintPDFExporter(BaseExporter):
         super().__init__(data, filename, **kwargs)
         self.template_name = kwargs.get('template_name', 'exports/pdf/default.html')
         self.title = kwargs.get('title', 'Export')
+        self.subtitle = kwargs.get('subtitle', '')  # Added missing subtitle
         self.document_id = kwargs.get('document_id', None)
         self.document_type = kwargs.get('document_type', 'document')
         self.context = kwargs.get('context', {})

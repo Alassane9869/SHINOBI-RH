@@ -409,17 +409,19 @@ const Users: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                                <Shield className="text-purple-600 dark:text-purple-400" size={20} />
-                            </div>
-                            <div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Owners</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{ownerCount}</p>
+                    {currentUser?.role === 'owner' && (
+                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                    <Shield className="text-purple-600 dark:text-purple-400" size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">Owners</p>
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{ownerCount}</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -485,7 +487,7 @@ const Users: React.FC = () => {
                             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                             <option value="all">Tous les rôles</option>
-                            <option value="owner">Owner</option>
+                            {currentUser?.role === 'owner' && <option value="owner">Owner</option>}
                             <option value="admin">Admin</option>
                             <option value="rh">RH</option>
                             <option value="manager">Manager</option>

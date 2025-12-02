@@ -149,12 +149,61 @@ class RegisterCompanyView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        # Vérifier qu'un plan a été sélectionné
+        selected_plan = request.data.get('selected_plan')
+        if not selected_plan:
+            return Response({
+                "detail": "Vous devez sélectionner un plan avant de créer votre compte."
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         serializer = CompanyRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
+            
+            # Créer l'abonnement immédiatement
+            from billing.models import SubscriptionPlan, Subscription
+            from datetime import timedelta
+            from django.utils import timezone
+            
+            try:
+                plan = SubscriptionPlan.objects.get(slug=selected_plan, is_active=True)
+                
+                # Créer l'abonnement en mode trial
+                trial_end = timezone.now() + timedelta(days=14)
+                subscription = Subscription.objects.create(
+                    company=user.company,
+                    plan=plan,
+                    status='trial',
+                    start_date=timezone.now(),
+                    trial_end_date=trial_end,
+                    next_billing_date=trial_end,
+                    auto_renew=True
+                )
+                
+                print(f"[REGISTRATION] Compte créé pour {user.company.name} avec plan {plan.name}")
+                
+            except SubscriptionPlan.DoesNotExist:
+                # Si le plan n'existe pas, supprimer l'utilisateur et la company créés
+                user.company.delete()
+                user.delete()
+                return Response({
+                    "detail": "Le plan sélectionné n'existe pas."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generate tokens
+            from rest_framework_simplejwt.tokens import RefreshToken
+            refresh = RefreshToken.for_user(user)
+            
             return Response({
                 "message": "Entreprise et compte administrateur créés avec succès.",
-                "user": UserSerializer(user).data
+                "user": UserSerializer(user).data,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "subscription": {
+                    "plan": plan.name,
+                    "status": subscription.status,
+                    "trial_end_date": subscription.trial_end_date
+                }
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 class SaasAdminViewSet(viewsets.ViewSet):

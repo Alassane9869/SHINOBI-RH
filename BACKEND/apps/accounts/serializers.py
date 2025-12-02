@@ -14,8 +14,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('id', 'email', 'first_name', 'last_name', 'role', 'company', 'company_id', 'has_employee_profile', 'created_at', 'password')
-        read_only_fields = ('id', 'created_at')
+        fields = ('id', 'email', 'first_name', 'last_name', 'role', 'company', 'company_id', 'has_employee_profile', 'created_at', 'password', 'is_saas_owner')
+        read_only_fields = ('id', 'created_at', 'is_saas_owner')
 
     def get_has_employee_profile(self, obj):
         return hasattr(obj, 'employee_profile')

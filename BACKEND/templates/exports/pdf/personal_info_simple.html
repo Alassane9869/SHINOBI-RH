@@ -6,11 +6,11 @@
         margin: 20px 0;
         padding: 15px;
         background-color: #f8f9fa;
-        border-left: 4px solid {{ branding.primary_color|default:'#4472C4' }};
+        border-left: 4px solid #4472C4;
     }
     .section-title {
         margin-top: 30px;
-        color: {{ branding.primary_color|default:'#4472C4' }};
+        color: #4472C4;
         border-bottom: 1px solid #ddd;
         padding-bottom: 5px;
     }
@@ -29,7 +29,7 @@
 </style>
 
 <!-- Informations Personnelles -->
-<div class="info-box">
+<div class="info-box" style="border-left-color: {{ branding.primary_color|default:'#4472C4' }};">
     <h2 style="margin-top: 0; color: {{ branding.primary_color|default:'#4472C4' }};">Fiche Employé</h2>
     <div class="field-row">
         <span class="field-label">Nom complet :</span>
@@ -50,7 +50,7 @@
 </div>
 
 <!-- Informations Professionnelles -->
-<h2 class="section-title">Informations Professionnelles</h2>
+<h2 class="section-title" style="color: {{ branding.primary_color|default:'#4472C4' }};">Informations Professionnelles</h2>
 <div style="margin-left: 15px;">
     <div class="field-row">
         <span class="field-label">ID Employé :</span>

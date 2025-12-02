@@ -20,6 +20,8 @@ urlpatterns = [
     path('api/dashboard/', include('apps.dashboard.urls')),
     path('api/stats/', include('apps.core.urls')),  # Keep stats endpoint separate
     path('api/notifications/', include('apps.notifications.urls')),
+    path('api/pdf/', include('apps.pdf_templates.urls')),
+    path('api/billing/', include('billing.urls')),  # Payment & Subscription system
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

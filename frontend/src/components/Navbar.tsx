@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
 import { useSidebar } from '../context/SidebarContext';
+import TrialCountdown from './TrialCountdown';
 
 const Navbar: React.FC = () => {
     const { user, logout } = useAuthStore();
@@ -170,6 +171,9 @@ const Navbar: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 md:gap-3 z-10">
+                    {/* Trial Countdown */}
+                    <TrialCountdown />
+
                     {/* Mobile Search Button */}
                     <button
                         onClick={() => setIsSearchOpen(true)}
