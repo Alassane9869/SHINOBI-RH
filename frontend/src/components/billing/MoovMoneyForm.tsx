@@ -3,18 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Smartphone } from 'lucide-react';
 import billingService from '../../services/billingService';
 import toast from 'react-hot-toast';
+import axiosClient from '../../api/axiosClient';
+import useAuthStore from '../../auth/AuthStore';
 
 interface MoovMoneyFormProps {
     planId: number;
     amount: number;
     currency: string;
+    planSlug: string;
 }
 
-const MoovMoneyForm: React.FC<MoovMoneyFormProps> = ({ planId, amount, currency }) => {
+const MoovMoneyForm: React.FC<MoovMoneyFormProps> = ({ planId, amount, currency, planSlug }) => {
     const navigate = useNavigate();
     const [phoneNumber, setPhoneNumber] = useState('');
     const [loading, setLoading] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+    const { loadUser } = useAuthStore();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,10 +37,44 @@ const MoovMoneyForm: React.FC<MoovMoneyFormProps> = ({ planId, amount, currency 
             toast.success('Paiement initié ! Vérifiez votre téléphone.');
 
             // Simuler la vérification du statut (en production, utiliser des webhooks)
-            setTimeout(() => {
-                setPaymentStatus('success');
-                toast.success('Paiement confirmé ! 🎉');
-                navigate('/subscription?success=true');
+            setTimeout(async () => {
+                try {
+                    setPaymentStatus('success');
+
+                    // Retrieve pending registration data
+                    const pendingData = localStorage.getItem('pending_registration');
+                    if (!pendingData) {
+                        toast.error('Données d\'inscription manquantes. Veuillez vous réinscrire.');
+                        navigate('/register');
+                        return;
+                    }
+
+                    const registrationData = JSON.parse(pendingData);
+
+                    // Create account with selected plan
+                    const response = await axiosClient.post('/api/auth/register-company/', {
+                        ...registrationData,
+                        selected_plan: planSlug
+                    });
+
+                    // Store tokens
+                    if (response.data.access && response.data.refresh) {
+                        localStorage.setItem('access_token', response.data.access);
+                        localStorage.setItem('refresh_token', response.data.refresh);
+                    }
+
+                    // Clear pending registration data
+                    localStorage.removeItem('pending_registration');
+
+                    // Refresh user
+                    await loadUser();
+
+                    toast.success('Paiement confirmé ! Compte créé avec succès ! 🎉');
+                    navigate('/dashboard');
+                } catch (error: any) {
+                    toast.error(error.response?.data?.detail || 'Erreur lors de la création du compte');
+                    setPaymentStatus('failed');
+                }
             }, 5000);
 
         } catch (error: any) {

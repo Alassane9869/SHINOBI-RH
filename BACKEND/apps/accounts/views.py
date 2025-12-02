@@ -246,3 +246,42 @@ class SaasAdminViewSet(viewsets.ViewSet):
             'total_users': CustomUser.objects.count(),
             'revenue_mrr': 0, # À implémenter avec Stripe
         })
+
+from .models import PlatformConfig
+from .serializers import PlatformConfigSerializer
+
+class PlatformConfigView(APIView):
+    """
+    API pour gérer la configuration de la plateforme.
+    GET: Récupérer la config (PUBLIC - permet de vérifier le mode maintenance)
+    POST: Modifier la config (Owner uniquement)
+    """
+    permission_classes = [permissions.AllowAny]  # Pas d'auth requise
+
+    def get(self, request):
+        """Lecture publique de la config pour vérifier le mode maintenance"""
+        config = PlatformConfig.get_config()
+        serializer = PlatformConfigSerializer(config)
+        return Response(serializer.data)
+
+    def post(self, request):
+        """Modification réservée au owner"""
+        if not request.user.is_authenticated:
+            return Response(
+                {'detail': 'Authentication required.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+            
+        if not request.user.is_saas_owner:
+            return Response(
+                {'detail': 'Seul le propriétaire peut modifier la configuration.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        config = PlatformConfig.get_config()
+        serializer = PlatformConfigSerializer(config, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save(updated_by=request.user)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

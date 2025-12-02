@@ -12,6 +12,8 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import LegalMentions from './pages/LegalMentions';
 import Security from './pages/Security';
+import MaintenancePage from './pages/MaintenancePage';
+import MaintenanceCheck from './components/MaintenanceCheck';
 import { SidebarProvider } from './context/SidebarContext';
 import UpgradeModal from './components/UpgradeModal';
 
@@ -62,18 +64,25 @@ function App() {
         loadUser();
     }, [loadUser]);
 
+
+
     if (!isAuthenticated) {
         return (
-            <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<RegisterCompany />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/legal" element={<LegalMentions />} />
-                <Route path="/security" element={<Security />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<RegisterCompany />} />
+                    <Route path="/terms" element={<TermsOfService />} />
+                    <Route path="/privacy" element={<PrivacyPolicy />} />
+                    <Route path="/legal" element={<LegalMentions />} />
+                    <Route path="/security" element={<Security />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/maintenance" element={<MaintenancePage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Suspense>
         );
     }
 
@@ -85,23 +94,10 @@ function App() {
             {/* Upgrade Modal for trial users */}
             <UpgradeModal />
 
-            <Routes>
-                {/* Standalone pages (no sidebar/navbar) */}
-                <Route path="/pricing" element={
-                    <Suspense fallback={<LoadingFallback />}>
-                        <RequireAuth allowedRoles={['admin', 'owner']}>
-                            <PricingPage />
-                        </RequireAuth>
-                    </Suspense>
-                } />
-                <Route path="/checkout" element={
-                    <Suspense fallback={<LoadingFallback />}>
-                        <RequireAuth allowedRoles={['admin', 'owner']}>
-                            <CheckoutPage />
-                        </RequireAuth>
-                    </Suspense>
-                } />
+            {/* Maintenance Mode Check - Auto-disconnect non-owners */}
+            <MaintenanceCheck />
 
+            <Routes>
                 {/* Main app with sidebar */}
                 <Route path="/*" element={
                     <SidebarProvider>

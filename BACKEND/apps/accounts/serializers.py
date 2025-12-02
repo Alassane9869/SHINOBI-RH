@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from .models import CustomUser
+from .models import CustomUser, PlatformConfig
 from apps.company.models import Company
 from apps.company.serializers import CompanySerializer
 
@@ -92,3 +92,22 @@ class CompanyRegistrationSerializer(serializers.Serializer):
         )
 
         return user
+
+
+class PlatformConfigSerializer(serializers.ModelSerializer):
+    """Serializer pour la configuration de la plateforme."""
+    
+    class Meta:
+        model = PlatformConfig
+        fields = [
+            'id',
+            'maintenance_mode',
+            'maintenance_message',
+            'platform_name',
+            'platform_url',
+            'support_email',
+            'allow_registration',
+            'updated_at'
+        ]
+        read_only_fields = ['id', 'updated_at']
+

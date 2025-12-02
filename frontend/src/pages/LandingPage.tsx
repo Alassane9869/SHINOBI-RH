@@ -709,7 +709,7 @@ const LandingPage = () => {
                                 ))}
                             </ul>
 
-                            <Link to="/register" className="w-full mt-auto">
+                            <Link to="/register?plan=starter" className="w-full mt-auto">
                                 <button className="w-full py-3 bg-[#1a1a1f] hover:bg-[#222227] border border-purple-500/20 rounded-xl text-white transition-all font-medium text-sm">
                                     Choisir Starter
                                 </button>
@@ -752,7 +752,7 @@ const LandingPage = () => {
                                 ))}
                             </ul>
 
-                            <Link to="/register" className="w-full mt-auto">
+                            <Link to="/register?plan=pro" className="w-full mt-auto">
                                 <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-500 hover:to-violet-500 text-white rounded-xl transition-all font-bold text-sm shadow-lg shadow-purple-900/30">
                                     Choisir Pro
                                 </button>

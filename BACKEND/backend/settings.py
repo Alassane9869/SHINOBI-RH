@@ -59,6 +59,8 @@ MIDDLEWARE = [
     # Multi-tenant middlewares
     'apps.core.middleware.TenantMiddleware',
     'apps.core.middleware.CompanyIsolationMiddleware',
+    # Maintenance mode - DÉSACTIVÉ (cause des boucles infinies)
+    # 'apps.accounts.middleware.MaintenanceModeMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'

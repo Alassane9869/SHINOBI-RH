@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,28 +29,47 @@ const RegisterCompany: React.FC = () => {
         resolver: zodResolver(registerSchema),
     });
 
+    // Vérifier le mode maintenance au chargement
+    useEffect(() => {
+        const checkMaintenance = async () => {
+            try {
+                const response = await axiosClient.get('/api/auth/platform/config/');
+                const isInMaintenance = response.data.maintenance_mode || false;
+
+                if (isInMaintenance) {
+                    // Rediriger vers la page de maintenance
+                    navigate('/maintenance');
+                }
+            } catch (error) {
+                // En cas d'erreur, continuer normalement
+                console.error('Erreur vérification maintenance:', error);
+            }
+        };
+
+        checkMaintenance();
+    }, [navigate]);
+
     const onSubmit = async (data: RegisterFormData) => {
         setIsLoading(true);
-        const selectedPlan = searchParams.get('plan') || 'free'; // Default to 'free' plan
 
         try {
-            await axiosClient.post('/api/auth/register-company/', {
-                ...data,
-                selected_plan: selectedPlan
-            });
-            toast.success('Compte créé avec succès !');
-            navigate('/login');
+            // Store registration data in localStorage (temporary)
+            const registrationData = {
+                company_name: data.company_name,
+                email: data.email,
+                password: data.password,
+                first_name: data.first_name,
+                last_name: data.last_name,
+                timestamp: new Date().toISOString()
+            };
+
+            localStorage.setItem('pending_registration', JSON.stringify(registrationData));
+
+            toast.success('Informations enregistrées ! Choisissez votre plan.');
+            navigate('/pricing');
         } catch (error: any) {
             console.error('Registration error:', error);
-            let message = 'Une erreur est survenue lors de l\'inscription.';
-
-            if (error.response?.data?.detail) {
-                message = error.response.data.detail;
-            } else if (typeof error.response?.data === 'object') {
-                const messages = Object.values(error.response.data).flat();
-                if (messages.length > 0) message = messages[0] as string;
-            }
-            toast.error(message);
+            toast.error('Une erreur est survenue. Veuillez réessayer.');
         } finally {
             setIsLoading(false);
         }
@@ -87,6 +106,33 @@ const RegisterCompany: React.FC = () => {
                             <h1 className="text-xl font-bold text-white mb-1">Créer un compte</h1>
                             <p className="text-xs text-gray-400">Rejoignez l'élite RH dès aujourd'hui</p>
                         </div>
+
+                        {/* Plan Selected Badge */}
+                        {searchParams.get('plan') && (
+                            <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                                            <CheckCircle2 className="w-5 h-5 text-purple-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-400">Plan sélectionné</p>
+                                            <p className="text-sm font-bold text-white capitalize">
+                                                {searchParams.get('plan') === 'starter' && 'Starter - Gratuit'}
+                                                {searchParams.get('plan') === 'pro' && 'Pro - 30,000 FCFA/mois'}
+                                                {searchParams.get('plan') === 'enterprise' && 'Enterprise - Sur devis'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Link
+                                        to="/#tarifs"
+                                        className="text-xs text-purple-400 hover:text-purple-300 underline transition-colors"
+                                    >
+                                        Changer
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
 
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             {/* Company Name */}
@@ -170,7 +216,7 @@ const RegisterCompany: React.FC = () => {
                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                 ) : (
                                     <>
-                                        Commencer l'essai <ArrowRight className="w-4 h-4" />
+                                        Créer mon compte <ArrowRight className="w-4 h-4" />
                                     </>
                                 )}
                             </button>

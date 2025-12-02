@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import useAuthStore from '../auth/AuthStore';
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
+import axiosClient from '../api/axiosClient';
 
 const loginSchema = z.object({
     email: z.string().email('Email invalide'),
@@ -18,7 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
-    const { login } = useAuthStore();
+    const { login, logout } = useAuthStore();
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -26,13 +27,33 @@ const Login: React.FC = () => {
         resolver: zodResolver(loginSchema),
     });
 
+
     const onSubmit = async (data: LoginFormData) => {
         setIsLoading(true);
         try {
+            // ÉTAPE 1 : Connexion d'abord pour savoir qui se connecte
             const user = await login(data.email, data.password);
+
+            // ÉTAPE 2 : Vérification du rôle et de la maintenance
             if (user.role === 'owner') {
+                // Le propriétaire passe toujours
                 navigate('/saas');
             } else {
+                // Pour les autres, on vérifie le mode maintenance
+                try {
+                    const configResponse = await axiosClient.get('/api/auth/platform/config/');
+                    if (configResponse.data.maintenance_mode) {
+                        // Mode maintenance activé - On déconnecte et on redirige
+                        logout(); // Déconnexion immédiate
+                        toast.error('Application en maintenance. Veuillez revenir plus tard.');
+                        navigate('/maintenance');
+                        return;
+                    }
+                } catch (configError) {
+                    console.error('Erreur vérification maintenance:', configError);
+                }
+
+                // Si pas de maintenance, on accède au dashboard
                 navigate('/dashboard');
             }
         } catch (error: any) {
@@ -99,7 +120,7 @@ const Login: React.FC = () => {
                                 <div className="relative group/input">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/input:text-purple-400 transition-colors" />
                                     <input
-                                        type={showPassword ? 'text' : 'password'}
+                                        type="password"
                                         {...register('password')}
                                         className={`w-full bg-white/5 border border-white/10 rounded-xl px-10 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:bg-purple-500/5 transition-all ${errors.password ? 'border-red-500/50' : ''}`}
                                         placeholder="Mot de passe"

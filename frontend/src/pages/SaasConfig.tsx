@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axiosClient from '../api/axiosClient';
 import {
@@ -57,6 +57,7 @@ const SaasConfig = () => {
     const [activeTab, setActiveTab] = useState('general');
     const [isSaving, setIsSaving] = useState(false);
     const [hasChanges, setHasChanges] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Fetch current stats for context
     const { data: stats } = useQuery({
@@ -110,6 +111,24 @@ const SaasConfig = () => {
         storage_limit_gb: 100,
     });
 
+    // Charger la configuration depuis le backend
+    useEffect(() => {
+        const loadConfig = async () => {
+            try {
+                const response = await axiosClient.get('/api/auth/platform/config/');
+                if (response.data) {
+                    setConfig(prev => ({ ...prev, ...response.data }));
+                }
+            } catch (error) {
+                console.error('Erreur chargement config:', error);
+                toast.error('Erreur de chargement de la configuration');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadConfig();
+    }, []);
+
     const handleChange = (key: keyof PlatformConfig, value: any) => {
         setConfig(prev => ({ ...prev, [key]: value }));
         setHasChanges(true);
@@ -117,14 +136,16 @@ const SaasConfig = () => {
 
     const handleSave = async () => {
         setIsSaving(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // TODO: Implémenter la sauvegarde backend
-        // await axiosClient.post('/api/platform/config/', config);
-
-        toast.success('Configuration sauvegardée avec succès !');
-        setIsSaving(false);
-        setHasChanges(false);
+        try {
+            await axiosClient.post('/api/auth/platform/config/', config);
+            toast.success('Configuration sauvegardée avec succès !');
+            setHasChanges(false);
+        } catch (error: any) {
+            console.error('Erreur sauvegarde:', error);
+            toast.error(error.response?.data?.detail || 'Erreur de sauvegarde');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleReset = () => {
@@ -172,6 +193,17 @@ const SaasConfig = () => {
         { id: 'features', label: 'Fonctionnalités', icon: Zap },
         { id: 'limits', label: 'Limites', icon: Database },
     ];
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <div className="text-center">
+                    <RefreshCw className="w-12 h-12 animate-spin text-primary-600 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">Chargement de la configuration...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -227,8 +259,8 @@ const SaasConfig = () => {
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === tab.id
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 shadow-sm'
-                                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                            ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 shadow-sm'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
                                             }`}
                                     >
                                         <Icon size={18} />

@@ -24,7 +24,12 @@ const CheckoutPage: React.FC = () => {
     const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'orange_money' | 'moov_money'>('stripe');
     const [promoCode, setPromoCode] = useState('');
     const [discount, setDiscount] = useState(0);
+    const [paymentAttempts, setPaymentAttempts] = useState(0);
+    const [promoAttempts, setPromoAttempts] = useState(0);
+    const [isBlocked, setIsBlocked] = useState(false);
     const { loadUser } = useAuthStore();
+
+    const MAX_ATTEMPTS = 5;
 
     useEffect(() => {
         const searchParams = new URLSearchParams(window.location.search);
@@ -63,12 +68,28 @@ const CheckoutPage: React.FC = () => {
     const applyPromoCode = async () => {
         if (!promoCode || !selectedPlan) return;
 
+        if (promoAttempts >= MAX_ATTEMPTS) {
+            toast.error('Nombre maximum de tentatives atteint. Veuillez contacter le support.');
+            setIsBlocked(true);
+            return;
+        }
+
         try {
             const result = await billingService.applyPromoCode(promoCode, selectedPlan.id);
             setDiscount(result.discount_amount);
             toast.success(`Code promo appliqué ! -${result.discount_amount} ${selectedPlan.currency}`);
+            setPromoAttempts(0); // Reset on success
         } catch (error: any) {
-            toast.error(error.response?.data?.detail || 'Code promo invalide');
+            const newAttempts = promoAttempts + 1;
+            setPromoAttempts(newAttempts);
+            const remainingAttempts = MAX_ATTEMPTS - newAttempts;
+
+            if (remainingAttempts > 0) {
+                toast.error(`Code promo invalide. ${remainingAttempts} tentative(s) restante(s).`);
+            } else {
+                toast.error('Nombre maximum de tentatives atteint. Veuillez contacter le support.');
+                setIsBlocked(true);
+            }
         }
     };
 
@@ -184,21 +205,38 @@ const CheckoutPage: React.FC = () => {
                         {/* Promo code */}
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                             <label className="block text-sm font-medium mb-2">Code promo</label>
+
+                            {isBlocked && (
+                                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                                    <p className="text-sm text-red-400">
+                                        ⚠️ Nombre maximum de tentatives atteint. Veuillez contacter le support.
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={promoCode}
                                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                                     placeholder="ENTREZ VOTRE CODE"
-                                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                                    disabled={isBlocked}
+                                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                                 <button
                                     onClick={applyPromoCode}
-                                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-medium transition-colors"
+                                    disabled={isBlocked}
+                                    className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Appliquer
                                 </button>
                             </div>
+
+                            {promoAttempts > 0 && promoAttempts < MAX_ATTEMPTS && (
+                                <p className="text-xs text-orange-400 mt-2">
+                                    {MAX_ATTEMPTS - promoAttempts} tentative(s) restante(s)
+                                </p>
+                            )}
                         </div>
                     </div>
 
@@ -228,22 +266,46 @@ const CheckoutPage: React.FC = () => {
                                     onClick={async () => {
                                         try {
                                             setLoading(true);
-                                            await billingService.subscribeFree(selectedPlan.id);
 
-                                            // Rafraîchir l'utilisateur pour mettre à jour le statut d'abonnement
+                                            // Retrieve pending registration data
+                                            const pendingData = localStorage.getItem('pending_registration');
+                                            if (!pendingData) {
+                                                toast.error('Données d\'inscription manquantes. Veuillez vous réinscrire.');
+                                                navigate('/register');
+                                                return;
+                                            }
+
+                                            const registrationData = JSON.parse(pendingData);
+
+                                            // Create account with selected plan
+                                            const response = await axiosClient.post('/api/auth/register-company/', {
+                                                ...registrationData,
+                                                selected_plan: selectedPlan.slug
+                                            });
+
+                                            // Store tokens
+                                            if (response.data.access && response.data.refresh) {
+                                                localStorage.setItem('access_token', response.data.access);
+                                                localStorage.setItem('refresh_token', response.data.refresh);
+                                            }
+
+                                            // Clear pending registration data
+                                            localStorage.removeItem('pending_registration');
+
+                                            // Refresh user
                                             await loadUser();
 
-                                            toast.success('Abonnement activé avec succès !');
+                                            toast.success('Compte créé avec succès !');
                                             navigate('/dashboard');
                                         } catch (error: any) {
-                                            toast.error(error.response?.data?.detail || 'Erreur lors de l\'activation');
+                                            toast.error(error.response?.data?.detail || 'Erreur lors de la création du compte');
                                             setLoading(false);
                                         }
                                     }}
                                     disabled={loading}
                                     className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {loading ? 'Activation...' : 'Confirmer et Commencer'}
+                                    {loading ? 'Création du compte...' : 'Confirmer et Créer mon compte'}
                                 </button>
                             </div>
                         ) : (
@@ -298,6 +360,7 @@ const CheckoutPage: React.FC = () => {
                                                     planId={selectedPlan.id}
                                                     amount={finalAmount}
                                                     currency={selectedPlan.currency}
+                                                    planSlug={selectedPlan.slug}
                                                 />
                                             </Elements>
                                         ) : (
@@ -312,6 +375,7 @@ const CheckoutPage: React.FC = () => {
                                             planId={selectedPlan.id}
                                             amount={finalAmount}
                                             currency={selectedPlan.currency}
+                                            planSlug={selectedPlan.slug}
                                         />
                                     )}
 
@@ -320,6 +384,7 @@ const CheckoutPage: React.FC = () => {
                                             planId={selectedPlan.id}
                                             amount={finalAmount}
                                             currency={selectedPlan.currency}
+                                            planSlug={selectedPlan.slug}
                                         />
                                     )}
                                 </div>
